@@ -4,35 +4,23 @@ with open('config.yml') as file:
     file.close()
 
 # import project modules
+from re import X
 from src.util import *
 import constants as c
 
 # import other packages
 import os
-from os.path import isfile, isdir, join
 import numpy as np
-from datetime import datetime, date
+from datetime import datetime
 import time
 from dateutil.relativedelta import relativedelta
-from bs4 import BeautifulSoup
-import re
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
 from IPython.display import display
-from zipfile import ZipFile
-import pickle
-import unicodedata
-import pytz
-from joblib import Parallel, delayed
-import shutil
-from sklearn.linear_model import LinearRegression
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
 from matplotlib import pyplot as plt
+import random
 import yaml
 import pandas as pd
 import warnings
 import quandl
-import alpha_vantage
 from alpha_vantage.timeseries import TimeSeries
 import yfinance as yf
 
@@ -329,151 +317,147 @@ class ReturnData:
         self.ret = ret
         self.hist_cons = hist_cons
 
-# %%
-# convert price to return
-msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
-ret = ret \
-        .sort_index() \
-        .pct_change() \
-        .mask(~msk)
-
-# check extreme values
-s = pd.Series(ret.values.flatten())
-s = s.loc[lambda x: x.notnull()]
-q = 0.001
-display(s.quantile([q, 1-q]))
-
-# clipping
-ratio_thsld = 2
-clip_thsld = 0.2
-ret.loc[:,:] = np.select([ret > ratio_thsld-1, ret < 1/ratio_thsld-1, ret > clip_thsld, ret < -clip_thsld, True], [0, 0, clip_thsld, -clip_thsld, ret])
-display(ret.head())
-pd.Series(ret.values.flatten()).hist(bins=100)
-
-# %% [markdown]
-# # Calculate Beta and Excess Returns
-
-# %%
-# download SPY
-df = yf.download('SPY', start=params['start_date'], end=params['end_date'], progress=False) \
-        .reset_index() \
-        .assign(stock = 'SPY') \
-        .rename(columns={'Date':'date', 'Adj Close':'adj_close'}) \
-        .loc[:,['date','stock','adj_close']] \
-        .reset_index(drop=True)
-spy = df.pivot(index='date', columns='stock', values='adj_close')
-spy.index = pd.to_datetime(spy.index)
-spy = spy.sort_index().pct_change()
-
-# align stock and SPY dates
-dates = (spy['SPY'].loc[lambda x: x.notnull()].index & ret.index).sort_values()
-ret = ret.reindex(index=dates)
-spy = spy.reindex(index=dates)
-
-log(f'Shape of SPY: {spy.shape}')
-log(f'Number of nulls of SPY: {spy.SPY.isnull().sum()}')
-
-# add SPY to returns table
-ret = ret.merge(spy, how='inner', left_index=True, right_index=True)
-
-# %%
-def get_beta(ret, n_day, window):
-    '''ret is a returns table with last columns as SPY'''
-    
-    # convert return to n-day horizon
-    ret = ret.rolling(n_day).sum()
-    
-    # individual stock volatility
-    stacked_vols = ret.rolling(window, min_periods=window//2).std() \
-        .clip(0.01, 3) \
-        .stack().reset_index() \
-        .set_axis(['date', 'stock', 'stock_vol'], axis=1)
-    
-    # correlation between stock and market
-    stacked_corrs = ret['SPY'] \
-        .rolling(window, min_periods=window//2) \
-        .corr(other=ret, pairwise=False) \
-        .stack().reset_index() \
-        .set_axis(['date', 'stock', 'correl'], axis=1)
+    def cal_returns(self):
         
-    # beta calculation
-    beta = stacked_vols \
-         .merge(stacked_corrs, how='inner', on=['date', 'stock']) \
-         .set_index('date')
-    market_vol = pd.DataFrame(beta.loc[lambda x: x.stock=='SPY']['stock_vol']).rename(columns={'stock_vol':'market_vol'})
-    beta = beta.merge(market_vol, how='inner', left_index=True, right_index=True)
-    beta['beta'] = beta['correl'] * beta['stock_vol'] / beta['market_vol']
-    beta = beta.loc[lambda x: x.stock!='SPY']
-    beta = beta.reset_index().pivot('date','stock','beta')
-    return beta
-    
-    
-def get_excess_return(ret, beta, n_day):
-    '''ret is a returns table with last columns as SPY'''
-    
-    # convert return to n-day horizon
-    ret = ret.rolling(n_day).sum()
-    
-    # calculate excess return
-    beta = beta.merge(ret['SPY'], how='inner', left_index=True, right_index=True)
-    pred_ret = beta.drop('SPY', axis=1).multiply(beta['SPY'], axis=0)
-    ret, pred_ret = align_index([ret, pred_ret])
-    exret = ret - pred_ret
-    return ret, exret
+        # init
+        ret = self.ret
+        hist_cons = self.hist_cons
 
-# %%
-# calculate beta for all investment horizons
-horizons = {'1d':1, '3d':3, '1w':5, '2w':10, '1m':21, '3m':21*3, '6m':21*6, '9m':21*9, '12m':21*12}
-betas = {}
-for h in horizons:
-    betas[h] = get_beta(ret=ret, n_day=horizons[h], window=252)
-    
-# get 1-day excess return
-ret, exret = get_excess_return(ret=ret, beta=betas['1d'], n_day=horizons['1d'])
+        # convert price to return
+        msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
+        ret = ret \
+                .sort_index() \
+                .pct_change() \
+                .mask(~msk)
 
-# %%
-# check market PnL
-spy.cumsum().plot()
+        # check extreme values
+        s = pd.Series(ret.values.flatten())
+        s = s.loc[lambda x: x.notnull()]
+        q = c.Q_TAIL
+        display(s.quantile([q, 1-q]))
 
-# %%
-# check beta distribution
-for h in ['1d','1w','1m']:
-    new_plot()
-    betas[h].iloc[-1].hist(bins=20)
+        # clipping
+        ratio_thsld = config['ratio_thsld']
+        clip_thsld = config['clip_thsld']
+        ret.loc[:,:] = np.select([ret > ratio_thsld-1, ret < 1/ratio_thsld-1, ret > clip_thsld, ret < -clip_thsld, True], [0, 0, clip_thsld, -clip_thsld, ret])
+        display(ret.head())
+        pd.Series(ret.values.flatten()).hist(bins=100)
 
-# %%
-# cumulative returns before removing market return
-sample_stock = random.sample(ret.columns.tolist(),20)
-new_plot()
-for c in sample_stock:
-    ret[c].cumsum().plot()
-    
-# cumulative returns after removing market return
-sample_stock = random.sample(exret.columns.tolist(),20)
-new_plot()
-for c in sample_stock:
-    exret[c].cumsum().plot()
+        # # Calculate Beta and Excess Returns
+        # download SPY
+        df = yf.download('SPY', start=c.DOWNLOAD_RETURN_START_DATE, end=c.DOWNLOAD_RETURN_END_DATE, progress=False) \
+                .reset_index() \
+                .assign(stock = 'SPY') \
+                .rename(columns={'Date':'date', 'Adj Close':'adj_close'}) \
+                .loc[:,['date','stock','adj_close']] \
+                .reset_index(drop=True)
+        spy = df.pivot(index='date', columns='stock', values='adj_close')
+        spy.index = pd.to_datetime(spy.index)
+        spy = spy.sort_index().pct_change()
 
-# %%
-# check excess return is uncorrelated with market return
-corr = []
-for stock in ret:
-    corr.append(pd.concat([ret[stock], spy.SPY], axis=1).dropna().corr().iloc[0,1])
-new_plot()
-pd.Series(corr).hist(bins=50)
+        # align stock and SPY dates
+        dates = (spy['SPY'].loc[lambda x: x.notnull()].index & ret.index).sort_values()
+        ret = ret.reindex(index=dates)
+        spy = spy.reindex(index=dates)
 
-corr = []
-for stock in exret:
-    corr.append(pd.concat([exret[stock], spy.SPY], axis=1).dropna().corr().iloc[0,1])
-new_plot()
-pd.Series(corr).hist(bins=50)
+        log(f'Shape of SPY: {spy.shape}')
+        log(f'Number of nulls of SPY: {spy.SPY.isnull().sum()}')
 
-# %%
-# export
-ret.to_csv('ret.csv')
-exret.to_csv('exret.csv')
-save_pkl(spy, 'spy')
-save_pkl(betas, 'betas')
+        # add SPY to returns table
+        ret = ret.merge(spy, how='inner', left_index=True, right_index=True)
+
+
+        def get_beta(ret, n_day, window):
+            '''ret is a returns table with last columns as SPY'''
+            
+            # convert return to n-day horizon
+            ret = ret.rolling(n_day).sum()
+            
+            # individual stock volatility
+            stacked_vols = ret.rolling(window, min_periods=window//2).std() \
+                .clip(config['stock_volatility_min'], config['stock_volatility_max']) \
+                .stack().reset_index() \
+                .set_axis(['date', 'stock', 'stock_vol'], axis=1)
+            
+            # correlation between stock and market
+            stacked_corrs = ret['SPY'] \
+                .rolling(window, min_periods=window//2) \
+                .corr(other=ret, pairwise=False) \
+                .stack().reset_index() \
+                .set_axis(['date', 'stock', 'correl'], axis=1)
+                
+            # beta calculation
+            beta = stacked_vols \
+                .merge(stacked_corrs, how='inner', on=['date', 'stock']) \
+                .set_index('date')
+            market_vol = pd.DataFrame(beta.loc[lambda x: x.stock=='SPY']['stock_vol']).rename(columns={'stock_vol':'market_vol'})
+            beta = beta.merge(market_vol, how='inner', left_index=True, right_index=True)
+            beta['beta'] = beta['correl'] * beta['stock_vol'] / beta['market_vol']
+            beta = beta.loc[lambda x: x.stock!='SPY']
+            beta = beta.reset_index().pivot('date','stock','beta')
+            return beta
+            
+            
+        def get_excess_return(ret, beta, n_day):
+            '''ret is a returns table with last columns as SPY'''
+            
+            # convert return to n-day horizon
+            ret = ret.rolling(n_day).sum()
+            
+            # calculate excess return
+            beta = beta.merge(ret['SPY'], how='inner', left_index=True, right_index=True)
+            pred_ret = beta.drop('SPY', axis=1).multiply(beta['SPY'], axis=0)
+            ret, pred_ret = align_index([ret, pred_ret])
+            exret = ret - pred_ret
+            return ret, exret
+
+        # calculate beta for all investment horizons
+        horizons = config['horizons']
+        betas = {}
+        for h in horizons:
+            betas[h] = get_beta(ret=ret, n_day=horizons[h], window=config['beta_window'])
+            
+        # get 1-day excess return
+        ret, exret = get_excess_return(ret=ret, beta=betas['1d'], n_day=horizons['1d'])
+
+        # check market PnL
+        spy.cumsum().plot()
+
+        # check beta distribution
+        for h in ['1d','1w','1m']:
+            new_plot()
+            betas[h].iloc[-1].hist(bins=20)
+
+        # cumulative returns before removing market return
+        sample_stock = random.sample(ret.columns.tolist(),20)
+        new_plot()
+        for c in sample_stock:
+            ret[c].cumsum().plot()
+            
+        # cumulative returns after removing market return
+        sample_stock = random.sample(exret.columns.tolist(),20)
+        new_plot()
+        for c in sample_stock:
+            exret[c].cumsum().plot()
+
+        # check excess return is uncorrelated with market return
+        corr = []
+        for stock in ret:
+            corr.append(pd.concat([ret[stock], spy.SPY], axis=1).dropna().corr().iloc[0,1])
+        new_plot()
+        pd.Series(corr).hist(bins=50)
+
+        corr = []
+        for stock in exret:
+            corr.append(pd.concat([exret[stock], spy.SPY], axis=1).dropna().corr().iloc[0,1])
+        new_plot()
+        pd.Series(corr).hist(bins=50)
+
+        # export
+        ret.to_csv('ret.csv')
+        exret.to_csv('exret.csv')
+        save_pkl(spy, 'spy')
+        save_pkl(betas, 'betas')
 
 
 
