@@ -1,12 +1,7 @@
-# load main config
-with open('config.yml') as file:
-    config = yaml.safe_load(file)   
-    file.close()
-
 # import project modules
-from re import X
+from asyncio import constants
 from src.util import *
-import constants as c
+import constants as const
 
 # import other packages
 import os
@@ -24,13 +19,15 @@ import quandl
 from alpha_vantage.timeseries import TimeSeries
 import yfinance as yf
 
+
+
 class ReturnData:
-    def __init__(self, config):
-        self.config = config
-        self.START_DATETIME = datetime.strptime(c.DOWNLOAD_RETURN_START_DATE, '%Y-%m-%d')
+    def __init__(self):
+        self.config = yaml.safe_load(open('config.yml')) 
+        self.START_DATETIME = datetime.strptime(const.DOWNLOAD_RETURN_START_DATE, '%Y-%m-%d')
         pd.set_option('display.max_columns', None)
         pd.options.mode.chained_assignment = None
-        signal_.signal(signal_.SIGALRM, timeout_handler)
+        # signal_.signal(signal_.SIGALRM, timeout_handler)
         warnings.filterwarnings("ignore")
         return
 
@@ -60,7 +57,7 @@ class ReturnData:
         assert hist_changes.isnull().sum().sum() == 0
 
         # define total stock universe
-        all_stocks = sorted(set(curr_cons['Symbol'].tolist() + hist_changes[hist_changes['date']>=c.DOWNLOAD_RETURN_START_DATE]['symbol'].tolist()))
+        all_stocks = sorted(set(curr_cons['Symbol'].tolist() + hist_changes[hist_changes['date']>=const.DOWNLOAD_RETURN_START_DATE]['symbol'].tolist()))
 
         # generate a table of historical constituents
         # rows as all dates in the study preiod; columns as all stocks ever existed in S&P500 since the start of study period
@@ -85,7 +82,7 @@ class ReturnData:
 
         # filter dates to within study period
         hist_cons = hist_cons \
-                    .loc[lambda x: (x.date >= c.DOWNLOAD_RETURN_START_DATE) & (x.date <= c.DOWNLOAD_RETURN_END_DATE)] \
+                    .loc[lambda x: (x.date >= const.DOWNLOAD_RETURN_START_DATE) & (x.date <= const.DOWNLOAD_RETURN_END_DATE)] \
                     .set_index('date') \
                     .sort_index()
 
@@ -95,13 +92,20 @@ class ReturnData:
         display(hist_cons.head())
         log(f'Shape of historical constituents: {hist_cons.shape}')
 
+        # filter stocks sampled based on config
+        hist_cons = hist_cons.iloc[:, :self.config['N_STOCK_RETURN']]
+
         # plot for DQ check
         new_plot()
         hist_cons.sum(axis=1).plot()
         plt.title('Number of constituent stocks per day')
+        plt.show()
+        plt.close()
         new_plot()
         hist_cons.sum(axis=0).hist(bins=30)
         plt.title('Distribution of stock life span (days)')
+        plt.show()
+        plt.close()
 
         # save results
         self.hist_cons = hist_cons
@@ -133,7 +137,7 @@ class ReturnData:
         ret = ret[sorted(ret.columns.tolist())]
 
         # remove market holidays
-        ret = ret.loc[lambda x: ~x.index.isin(c.MARKET_HOLIDAYS)]
+        ret = ret.loc[lambda x: ~x.index.isin(const.MARKET_HOLIDAYS)]
 
         # mask against historical constituents
         msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
@@ -148,15 +152,17 @@ class ReturnData:
         plt.plot(ret.notnull().sum(axis=1))
         plt.grid()
         plt.title('Downloaded vs Expected stocks per day')
+        plt.show()
+        plt.close()
 
         # list down the missing stocks
         missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
-        log(f'Number of missing stocks: {len(missing_stocks)}')
-        log(f'List of missing stocks: {", ".join(missing_stocks)}')
+        log(f'Number of stocks missed by Quandl: {len(missing_stocks)}')
+        log(f'List of missed by Quandl: {", ".join(missing_stocks)}')
 
         # DQ
         log(f'Shape of return is {ret.shape}')
-        log(f'Min date: {ret.index.min()}, Max date: {ret.index.max()}')
+        log(f'Min date of return: {ret.index.min()}, Max date of return: {ret.index.max()}')
 
         # list of stock and date missing from Quandl
         missing = []
@@ -169,127 +175,147 @@ class ReturnData:
                 if len(missing_date_list) >= 10:
                     missing.append((stock, str(min(missing_date_list))[:10], str(max(missing_date_list))[:10]))
         missing_df = pd.DataFrame(missing, columns=['stock','start','end']).assign(diff=lambda x: (pd.to_datetime(x.end)-pd.to_datetime(x.start)).dt.days)
-        log(f'Shape of missing_df: {missing_df.shape}')
+        log(f'Shape of missing_df (Quandl): {missing_df.shape}')
+        log('missing_df (Quandl): ')
         display(missing_df.sort_values('diff').head())
-        display(missing_df['diff'].hist(bins=15))
-
-        # download yahoo for missing data
-        ret_yf = []
-        for stock, start, end in missing:
-            df = yf.download(stock, start=start, end=end, progress=False) \
-                    .reset_index() \
-                    .assign(stock = stock) \
-                    .rename(columns={'Date':'date', 'Adj Close':'adj_close'}) \
-                    .loc[:,['date','stock','adj_close']] \
-                    .reset_index(drop=True)
-            log(f'{stock}: start={start}, end={end}, records={df.shape[0]}')
-            ret_yf.append(df)
-        ret_yf = pd.concat(ret_yf)
-        ret_yf = ret_yf.pivot(index='date', columns='stock', values='adj_close')
-        ret_yf.index = pd.to_datetime(ret_yf.index)
-        ret_yf = ret_yf.sort_index()
-        ret_yf = ret_yf[sorted(ret_yf.columns.tolist())]
-
-        # add extra price from yahoo
-        for stock in ret_yf.columns.tolist():
-            if stock not in ret.columns.tolist():
-                ret[stock] = np.nan
-            replace_idx = ret.loc[lambda x: x[stock].isnull()].index.intersection(ret_yf.loc[lambda x: x[stock].notnull()].index)
-            ret.loc[replace_idx, stock] = ret_yf.loc[replace_idx, stock]
-        ret = ret[sorted(ret.columns.tolist())]
-        msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
-        ret = ret.mask(~msk)
-
-        # compare number of stocks per day
         new_plot()
-        plt.plot(hist_cons.sum(axis=1))
-        plt.plot(ret.notnull().sum(axis=1))
-        plt.grid()
-        plt.title('Downloaded vs Expected stocks per day')
-        new_plot()
-        plt.plot(hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
-        plt.grid()
-        plt.title('Shortfall of stock per day')
+        missing_df['diff'].hist(bins=15)
+        plt.title('Distribution of diff in missing_df (Quandl)')
+        plt.close()
 
-        # list down the missing stocks
-        missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
-        log(f'Number of missing stocks: {len(missing_stocks)}')
-        log(f'List of missing stocks: {", ".join(missing_stocks)}')
 
-        # DQ
-        log(f'Shape of return is {ret.shape}')
-        log(f'Min date: {ret.index.min()}, Max date: {ret.index.max()}')
+        if len(missing) > 0:
+            # download yahoo for missing data
+            ret_yf = []
+            for stock, start, end in missing:
+                df = yf.download(stock, start=start, end=end, progress=False) \
+                        .reset_index() \
+                        .assign(stock = stock) \
+                        .rename(columns={'Date':'date', 'Adj Close':'adj_close'}) \
+                        .loc[:,['date','stock','adj_close']] \
+                        .reset_index(drop=True)
+                log(f'Downloded from yFinance: {stock}: start={start}, end={end}, records={df.shape[0]}')
+                ret_yf.append(df)
+            ret_yf = pd.concat(ret_yf)
+            ret_yf = ret_yf.pivot(index='date', columns='stock', values='adj_close')
+            ret_yf.index = pd.to_datetime(ret_yf.index)
+            ret_yf = ret_yf.sort_index()
+            ret_yf = ret_yf[sorted(ret_yf.columns.tolist())]
 
-        # list of stock and date missing from Quandl & Yahoo
-        missing = []
-        for stock in hist_cons.columns:
-            if stock not in ret.columns:
-                missing.append((stock, str(ret.index.min())[:10], str(ret.index.max())[:10]))
-            else:
-                date_list = hist_cons[stock].loc[lambda x: x==True].index.tolist()
-                missing_date_list = ret[stock].loc[lambda x: (x.index.isin(date_list)) & (x.isnull())].index.tolist()
-                if len(missing_date_list) >= 10:
-                    missing.append((stock, str(min(missing_date_list))[:10], str(max(missing_date_list))[:10]))
-        missing_df = pd.DataFrame(missing, columns=['stock','start','end']).assign(diff=lambda x: (pd.to_datetime(x.end)-pd.to_datetime(x.start)).dt.days)
-        log(f'Shape of missing_df: {missing_df.shape}')
-        display(missing_df.sort_values('diff').head())
-        display(missing_df['diff'].hist(bins=15))
+            # add extra price from yahoo
+            for stock in ret_yf.columns.tolist():
+                if stock not in ret.columns.tolist():
+                    ret[stock] = np.nan
+                replace_idx = ret.loc[lambda x: x[stock].isnull()].index.intersection(ret_yf.loc[lambda x: x[stock].notnull()].index)
+                ret.loc[replace_idx, stock] = ret_yf.loc[replace_idx, stock]
+            ret = ret[sorted(ret.columns.tolist())]
+            msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
+            ret = ret.mask(~msk)
 
-        '''
-        Get missing price data from Alpha Vantage
-        '''
-        ret_av = []
-        ts = TimeSeries(key=self.config['av_key'], output_format='pandas')
-        for stock, start, end in missing:
-            try:
-                df, _ = ts.get_daily(symbol=stock, outputsize='full')
-                df = df \
-                    .assign(stock=stock) \
-                    .rename(columns={'4. close':'close'}) \
-                    .reset_index() \
-                    .loc[:,['date','stock','close']] \
-                    .assign(date = lambda x: pd.to_datetime(x.date))
-                log(f'{stock}: start={start}, end={end}, records={df.shape[0]}')
-                ret_av.append(df)
-                time.sleep(12)
-            except:
-                time.sleep(12)
-                continue
-        ret_av = pd.concat(ret_av)
-        ret_av = ret_av.pivot(index='date', columns='stock', values='close')
-        ret_av.index = pd.to_datetime(ret_av.index)
-        ret_av = ret_av.sort_index()
-        ret_av = ret_av[sorted(ret_av.columns.tolist())]
+            # compare number of stocks per day
+            new_plot()
+            plt.plot(hist_cons.sum(axis=1))
+            plt.plot(ret.notnull().sum(axis=1))
+            plt.grid()
+            plt.title('Downloaded vs Expected stocks per day')
+            plt.show()
+            plt.close()
+            new_plot()
+            plt.plot(hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
+            plt.grid()
+            plt.title('Shortfall of stock per day')
+            plt.show()
+            plt.close()
 
-        # add extra price from AV
-        for stock in ret_av.columns.tolist():
-            if stock not in ret.columns.tolist():
-                ret[stock] = np.nan
-            replace_idx = ret.loc[lambda x: x[stock].isnull()].index.intersection(ret_av.loc[lambda x: x[stock].notnull()].index)
-            ret.loc[replace_idx, stock] = ret_av.loc[replace_idx, stock]
-        ret = ret[sorted(ret.columns.tolist())]
-        msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
-        ret = ret.mask(~msk)
+            # list down the missing stocks
+            missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
+            log(f'Number of missing stocks (Quandl + yFinance): {len(missing_stocks)}')
+            log(f'List of missing stocks (Quandl + yFinance): {", ".join(missing_stocks)}')
 
-        # compare number of stocks per day
-        new_plot()
-        plt.plot(hist_cons.sum(axis=1))
-        plt.plot(ret.notnull().sum(axis=1))
-        plt.grid()
-        plt.title('Downloaded vs Expected stocks per day')
-        new_plot()
-        plt.plot(hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
-        plt.grid()
-        plt.title('Shortfall of stock per day')
+            # DQ
+            log(f'Shape of return  (Quandl + yFinance) is {ret.shape}')
+            log(f'Min date (Quandl + yFinance): {ret.index.min()}, Max date (Quandl + yFinance): {ret.index.max()}')
 
-        # list down the missing stocks
-        missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
-        log(f'Number of missing stocks: {len(missing_stocks)}')
-        log(f'List of missing stocks: {", ".join(missing_stocks)}')
+            # list of stock and date missing from Quandl & Yahoo
+            missing = []
+            for stock in hist_cons.columns:
+                if stock not in ret.columns:
+                    missing.append((stock, str(ret.index.min())[:10], str(ret.index.max())[:10]))
+                else:
+                    date_list = hist_cons[stock].loc[lambda x: x==True].index.tolist()
+                    missing_date_list = ret[stock].loc[lambda x: (x.index.isin(date_list)) & (x.isnull())].index.tolist()
+                    if len(missing_date_list) >= 10:
+                        missing.append((stock, str(min(missing_date_list))[:10], str(max(missing_date_list))[:10]))
+            missing_df = pd.DataFrame(missing, columns=['stock','start','end']).assign(diff=lambda x: (pd.to_datetime(x.end)-pd.to_datetime(x.start)).dt.days)
+            log(f'Shape of missing_df (Quandl + yFinance): {missing_df.shape}')
+            log('missing_df (Quandl + yFinance): ')
+            display(missing_df.sort_values('diff').head())
+            new_plot()
+            missing_df['diff'].hist(bins=15)
+            plt.title('Distribution of diff in missing_df (Quandl + yFinance)')
+            plt.close()
 
-        # DQ
-        log(f'Shape of return is {ret.shape}')
-        log(f'Min date: {ret.index.min()}, Max date: {ret.index.max()}')
+
+        if len(missing) > 0:
+            '''
+            Get missing price data from Alpha Vantage
+            '''
+            ret_av = []
+            ts = TimeSeries(key=self.config['av_key'], output_format='pandas')
+            for stock, start, end in missing:
+                try:
+                    df, _ = ts.get_daily(symbol=stock, outputsize='full')
+                    df = df \
+                        .assign(stock=stock) \
+                        .rename(columns={'4. close':'close'}) \
+                        .reset_index() \
+                        .loc[:,['date','stock','close']] \
+                        .assign(date = lambda x: pd.to_datetime(x.date))
+                    log(f'Downloaded from Alpha Vantage: {stock}: start={start}, end={end}, records={df.shape[0]}')
+                    ret_av.append(df)
+                    time.sleep(12)
+                except:
+                    time.sleep(12)
+                    continue
+            ret_av = pd.concat(ret_av)
+            ret_av = ret_av.pivot(index='date', columns='stock', values='close')
+            ret_av.index = pd.to_datetime(ret_av.index)
+            ret_av = ret_av.sort_index()
+            ret_av = ret_av[sorted(ret_av.columns.tolist())]
+
+            # add extra price from AV
+            for stock in ret_av.columns.tolist():
+                if stock not in ret.columns.tolist():
+                    ret[stock] = np.nan
+                replace_idx = ret.loc[lambda x: x[stock].isnull()].index.intersection(ret_av.loc[lambda x: x[stock].notnull()].index)
+                ret.loc[replace_idx, stock] = ret_av.loc[replace_idx, stock]
+            ret = ret[sorted(ret.columns.tolist())]
+            msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
+            ret = ret.mask(~msk)
+
+            # compare number of stocks per day
+            new_plot()
+            plt.plot(hist_cons.sum(axis=1))
+            plt.plot(ret.notnull().sum(axis=1))
+            plt.grid()
+            plt.title('Downloaded vs Expected stocks per day')
+            plt.show()
+            plt.close()
+            new_plot()
+            plt.plot(hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
+            plt.grid()
+            plt.title('Shortfall of stock per day')
+            plt.show()
+            plt.close()
+
+            # list down the missing stocks
+            missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
+            log(f'Number of missing stocks (Quandl + yFinance + AV): {len(missing_stocks)}')
+            log(f'List of missing stocks (Quandl + yFinance + AV): {", ".join(missing_stocks)}')
+
+            # DQ
+            log(f'Shape of return  (Quandl + yFinance + AV) is {ret.shape}')
+            log(f'Min date (Quandl + yFinance + AV): {ret.index.min()}, Max date (Quandl + yFinance + AV): {ret.index.max()}')
 
         # # Final price check
         # check stocks that does not populate all days in life span
@@ -301,17 +327,26 @@ class ReturnData:
             date_count = ret[stock].notnull().sum()
             df.append((stock, date_count/date_span))
         df = pd.DataFrame(df, columns=['stock','ratio'])
+        new_plot()
         df.ratio.hist(bins=20)
+        plt.title('Stock populated ratio - hist')
+        plt.show()
+        plt.close()
+        log(f'List of stocks with populated ratio < 0.999: ')
         display(df.loc[lambda x: x.ratio < 0.999].sort_values('ratio'))
 
-        # visualise single stock to check continuity
-        stock = 'CBE'
-        ret[stock].plot()
-        print(ret[stock].count())
+
+        # # visualise single stock to check continuity
+        # stock = 'CBE'
+        # new_plot()
+        # ret[stock].plot()
+        # plt.show()
+        # log(f'Count of stock CBE: {ret[stock].count()}')
 
         # remove low data quality stock
         rm = ['RX','WFR']
-        ret = ret.drop(rm, axis=1)
+        ret = ret.loc[:,[x for x in ret.columns if x not in rm]]
+        # ret = ret.drop(rm, axis=1)
 
         # save results
         self.ret = ret
@@ -333,19 +368,19 @@ class ReturnData:
         # check extreme values
         s = pd.Series(ret.values.flatten())
         s = s.loc[lambda x: x.notnull()]
-        q = c.Q_TAIL
+        q = const.Q_TAIL
         display(s.quantile([q, 1-q]))
 
         # clipping
-        ratio_thsld = config['ratio_thsld']
-        clip_thsld = config['clip_thsld']
+        ratio_thsld = self.config['ratio_thsld']
+        clip_thsld = self.config['clip_thsld']
         ret.loc[:,:] = np.select([ret > ratio_thsld-1, ret < 1/ratio_thsld-1, ret > clip_thsld, ret < -clip_thsld, True], [0, 0, clip_thsld, -clip_thsld, ret])
         display(ret.head())
         pd.Series(ret.values.flatten()).hist(bins=100)
 
         # # Calculate Beta and Excess Returns
         # download SPY
-        df = yf.download('SPY', start=c.DOWNLOAD_RETURN_START_DATE, end=c.DOWNLOAD_RETURN_END_DATE, progress=False) \
+        df = yf.download('SPY', start=const.DOWNLOAD_RETURN_START_DATE, end=const.DOWNLOAD_RETURN_END_DATE, progress=False) \
                 .reset_index() \
                 .assign(stock = 'SPY') \
                 .rename(columns={'Date':'date', 'Adj Close':'adj_close'}) \
@@ -375,7 +410,7 @@ class ReturnData:
             
             # individual stock volatility
             stacked_vols = ret.rolling(window, min_periods=window//2).std() \
-                .clip(config['stock_volatility_min'], config['stock_volatility_max']) \
+                .clip(self.config['stock_volatility_min'], self.config['stock_volatility_max']) \
                 .stack().reset_index() \
                 .set_axis(['date', 'stock', 'stock_vol'], axis=1)
             
@@ -412,33 +447,45 @@ class ReturnData:
             return ret, exret
 
         # calculate beta for all investment horizons
-        horizons = config['horizons']
+        horizons = self.config['horizons']
         betas = {}
         for h in horizons:
-            betas[h] = get_beta(ret=ret, n_day=horizons[h], window=config['beta_window'])
+            betas[h] = get_beta(ret=ret, n_day=horizons[h], window=self.config['beta_window'])
             
         # get 1-day excess return
         ret, exret = get_excess_return(ret=ret, beta=betas['1d'], n_day=horizons['1d'])
 
         # check market PnL
+        new_plot()
         spy.cumsum().plot()
+        plt.title('Historical S&P500 prices')
+        plt.show()
+        plt.close()
+        
 
         # check beta distribution
+        self.betas = betas
         for h in ['1d','1w','1m']:
             new_plot()
             betas[h].iloc[-1].hist(bins=20)
+            plt.title(f'Beta distribution - {h}')
+            plt.show()
+            plt.close()
 
         # cumulative returns before removing market return
-        sample_stock = random.sample(ret.columns.tolist(),20)
+        sample_stock = random.sample(ret.columns.tolist(), min(ret.shape[1], 20))
         new_plot()
         for c in sample_stock:
             ret[c].cumsum().plot()
+        plt.title('Sample stock returns')
+        plt.close()
             
         # cumulative returns after removing market return
-        sample_stock = random.sample(exret.columns.tolist(),20)
+        sample_stock = random.sample(exret.columns.tolist(), min(exret.shape[1], 20))
         new_plot()
         for c in sample_stock:
             exret[c].cumsum().plot()
+        plt.close()
 
         # check excess return is uncorrelated with market return
         corr = []
@@ -446,18 +493,26 @@ class ReturnData:
             corr.append(pd.concat([ret[stock], spy.SPY], axis=1).dropna().corr().iloc[0,1])
         new_plot()
         pd.Series(corr).hist(bins=50)
+        plt.close()
 
         corr = []
         for stock in exret:
             corr.append(pd.concat([exret[stock], spy.SPY], axis=1).dropna().corr().iloc[0,1])
         new_plot()
         pd.Series(corr).hist(bins=50)
+        plt.close()
 
-        # export
-        ret.to_csv('ret.csv')
-        exret.to_csv('exret.csv')
-        save_pkl(spy, 'spy')
-        save_pkl(betas, 'betas')
+        # save results
+        self.ret = ret
+        self.exret = exret
+        self.spy = spy
+        self.betas = betas
+
+    def export(self):
+        self.ret.to_csv('./data/ret.csv')
+        self.exret.to_csv('./data/exret.csv')
+        save_pkl(self.spy, './data/spy.pkl')
+        save_pkl(self.betas, './data/betas.pkl')
 
 
 

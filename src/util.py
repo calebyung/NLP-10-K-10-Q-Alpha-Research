@@ -1,4 +1,4 @@
-import constants as c
+import constants as const
 
 import yaml 
 import signal as signal_
@@ -11,6 +11,7 @@ import pandas as pd
 from datetime import datetime, date
 import pickle
 import pytz
+from matplotlib import pyplot as plt
 
 
 warnings.filterwarnings("ignore")
@@ -23,19 +24,19 @@ pd.set_option('display.max_colwidth', None)
 # main config
 config = yaml.safe_load(open('config.yml'))  
 
-# signal for timing out an execution
-class TimeoutException(Exception):   # Custom exception class
-    pass
-def timeout_handler(signum, frame):   # Custom signal handler
-    raise TimeoutException
+# # signal for timing out an execution
+# class TimeoutException(Exception):   # Custom exception class
+#     pass
+# def timeout_handler(signum, frame):   # Custom signal handler
+#     raise TimeoutException
 
 # initialize logger file
 def init_logger():
     timestamp = datetime.strftime(datetime.now(tz=pytz.timezone('Hongkong')), '%Y%m%d_%H%M%S')
-    f = f'debug_{timestamp}.log'
+    f = f'./logs/debug_{timestamp}.log'
     if os.path.isfile(f):
         os.remove(f)
-    logging.basicConfig(filename=f)
+    logging.basicConfig(filename=f, level=logging.INFO, format='%(asctime)s %(message)s', datefmt='[%Y-%m-%d %H:%M:%S]')
 
 # log - to replace the print statement by adding the timestamp
 def log(msg):
