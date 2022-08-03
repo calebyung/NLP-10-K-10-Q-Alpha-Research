@@ -1,6 +1,8 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+# __pycache__/
+*__pycache__*/
 *.py[cod]
+
 
 # C extensions
 *.so
@@ -50,5 +52,4 @@ coverage.xml
 docs/_build/
 
 # data
-*.csv
-*.pkl
+data/output

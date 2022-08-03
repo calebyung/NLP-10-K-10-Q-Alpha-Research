@@ -21,14 +21,18 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_colwidth', None)
 
 
-# main config
-config = yaml.safe_load(open('config.yml'))  
 
 # # signal for timing out an execution
 # class TimeoutException(Exception):   # Custom exception class
 #     pass
 # def timeout_handler(signum, frame):   # Custom signal handler
 #     raise TimeoutException
+
+# function to initialize notebook settings
+def init_notebook():
+    pd.set_option('display.max_columns', None)
+    pd.options.mode.chained_assignment = None
+    warnings.filterwarnings("ignore")
 
 # initialize logger file
 def init_logger():

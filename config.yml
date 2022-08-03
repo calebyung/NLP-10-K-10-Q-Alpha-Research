@@ -1,7 +1,7 @@
 quandl_key: '2MxCLy_zrKRvSsxCWs_v'
 av_key: '3AWPS6G8YY4BIRPH'
 
-N_STOCK_RETURN: 10
+n_stock_return: 10
 
 ratio_thsld: 2
 clip_thsld: 0.2
@@ -11,3 +11,9 @@ stock_volatility_max: 3
 
 horizons: {'1d':1, '3d':3, '1w':5, '2w':10, '1m':21, '3m':63, '6m':126, '9m':189, '12m':252}
 beta_window: 252
+
+filing_start_date: '2008-01-01'
+filing_end_date: '2018-03-31'
+
+edgar_index_start_year: 2006
+edgar_user_agent: 'alpharesearch10k10q@gmail.com' 

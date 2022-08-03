@@ -1,5 +1,4 @@
 # import project modules
-from asyncio import constants
 from src.util import *
 import constants as const
 
@@ -12,23 +11,18 @@ from dateutil.relativedelta import relativedelta
 from IPython.display import display
 from matplotlib import pyplot as plt
 import random
-import yaml
 import pandas as pd
-import warnings
 import quandl
 from alpha_vantage.timeseries import TimeSeries
 import yfinance as yf
+import yaml
 
 
 
 class ReturnData:
     def __init__(self):
-        self.config = yaml.safe_load(open('config.yml')) 
+        self.config = yaml.safe_load(open('config.yml'))
         self.START_DATETIME = datetime.strptime(const.DOWNLOAD_RETURN_START_DATE, '%Y-%m-%d')
-        pd.set_option('display.max_columns', None)
-        pd.options.mode.chained_assignment = None
-        # signal_.signal(signal_.SIGALRM, timeout_handler)
-        warnings.filterwarnings("ignore")
         return
 
     def get_universe(self):
@@ -93,7 +87,7 @@ class ReturnData:
         log(f'Shape of historical constituents: {hist_cons.shape}')
 
         # filter stocks sampled based on config
-        hist_cons = hist_cons.iloc[:, :self.config['N_STOCK_RETURN']]
+        hist_cons = hist_cons.iloc[:, :self.config['n_stock_return']]
 
         # plot for DQ check
         new_plot()
@@ -509,10 +503,10 @@ class ReturnData:
         self.betas = betas
 
     def export(self):
-        self.ret.to_csv('./data/ret.csv')
-        self.exret.to_csv('./data/exret.csv')
-        save_pkl(self.spy, './data/spy.pkl')
-        save_pkl(self.betas, './data/betas.pkl')
+        self.ret.to_csv(f'{const.DATA_OUTPUT_PATH}/ret.csv')
+        self.exret.to_csv(f'{const.DATA_OUTPUT_PATH}/exret.csv')
+        save_pkl(self.spy, f'{const.DATA_OUTPUT_PATH}/spy.pkl')
+        save_pkl(self.betas, f'{const.DATA_OUTPUT_PATH}/betas.pkl')
 
 
 
