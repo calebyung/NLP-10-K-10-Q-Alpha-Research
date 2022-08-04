@@ -17,3 +17,6 @@ filing_end_date: '2018-03-31'
 
 edgar_index_start_year: 2006
 edgar_user_agent: 'alpharesearch10k10q@gmail.com' 
+
+gpu_enabled: False
+n_sample_per_cik: 1

@@ -2,6 +2,7 @@
 # __pycache__/
 *__pycache__*/
 *.py[cod]
+*.pyc
 
 
 # C extensions
@@ -52,4 +53,4 @@ coverage.xml
 docs/_build/
 
 # data
-data/output
+# data/output
