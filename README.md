@@ -14,7 +14,7 @@ This is an Alpha Research project based on the paper Lazy Prices by Cohen, Mallo
   * Embedding-based features: Word2Vec embeddings, Sentence-Encoder followed by a distance function
   * Sentiment-based features: FinBERT, Loughran and McDonald’s Master Dictionary
 
-### 3. Top2Vec for Section Identification
+### 3. Top2Vec for Company Sector Identification
 * Topic Modelling approach was used to extract word vectors and document vectors from 10-K's introduction section.
 * Clustering (DBSCAN) of document vector produced the topic vectors, which is serving as stock's Sector.
 
