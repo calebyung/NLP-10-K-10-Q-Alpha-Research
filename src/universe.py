@@ -111,6 +111,6 @@ class Universe:
         self.curr_cons = curr_cons
 
     def export(self):
-        self.curr_cons.to_csv('curr_cons.csv', index=False)
-        self.hist_changes.to_csv('hist_changes.csv', index=False)
-        self.hist_cons.to_csv('hist_cons.csv')
+        save_pkl(self.curr_cons, 'curr_cons.pkl')
+        save_pkl(self.hist_changes, 'hist_changes.pkl')
+        save_pkl(self.hist_cons, 'hist_cons.pkl')

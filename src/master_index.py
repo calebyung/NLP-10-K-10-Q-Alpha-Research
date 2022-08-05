@@ -5,7 +5,6 @@ import constants as const
 # import libraries
 import numpy as np
 import pandas as pd
-pd.set_option('display.max_columns', None)
 from IPython.display import display
 from joblib import Parallel, delayed
 import requests
@@ -37,7 +36,7 @@ class MasterIndex:
         cik_map = pd.concat([cik_map, curr_cons.loc[lambda x: ~x.stock.isin(cik_map.stock)]], axis=0).drop_duplicates()
 
         # load full stock list based on returns table
-        ret = pd.read_csv(f'{const.DATA_OUTPUT_PATH}/ret.csv')
+        ret = load_pkl(f'{const.DATA_OUTPUT_PATH}/ret.pkl')
         ret = ret.set_index('date')
         ret.index = pd.to_datetime(ret.index)
 

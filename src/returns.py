@@ -421,8 +421,8 @@ class ReturnData:
         self.betas = betas
 
     def export(self):
-        self.ret.to_csv(f'{const.DATA_OUTPUT_PATH}/ret.csv')
-        self.exret.to_csv(f'{const.DATA_OUTPUT_PATH}/exret.csv')
+        save_pkl(self.ret, f'{const.DATA_OUTPUT_PATH}/ret.pkl')
+        save_pkl(self.exret, f'{const.DATA_OUTPUT_PATH}/exret.pkl')
         save_pkl(self.spy, f'{const.DATA_OUTPUT_PATH}/spy.pkl')
         save_pkl(self.betas, f'{const.DATA_OUTPUT_PATH}/betas.pkl')
 

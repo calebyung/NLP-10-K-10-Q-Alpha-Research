@@ -20,3 +20,7 @@ edgar_user_agent: 'alpharesearch10k10q@gmail.com'
 
 gpu_enabled: False
 n_sample_per_cik: 1
+
+retry_connect: 3
+retry_backoff_factor: 0.5
+

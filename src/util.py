@@ -12,14 +12,7 @@ from datetime import datetime, date
 import pickle
 import pytz
 from matplotlib import pyplot as plt
-
-
-warnings.filterwarnings("ignore")
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_colwidth', None)
-
+from polyleven import levenshtein
 
 
 # # signal for timing out an execution
@@ -31,8 +24,10 @@ pd.set_option('display.max_colwidth', None)
 # function to initialize notebook settings
 def init_notebook():
     pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_colwidth', None)
     pd.options.mode.chained_assignment = None
     warnings.filterwarnings("ignore")
+    warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # initialize logger file
 def init_logger():
@@ -118,3 +113,10 @@ def align_col_index(dfs):
     col = col.sort_values().tolist()
     new_dfs = tuple([df.reindex(columns=col) for df in list(dfs)])
     return new_dfs
+
+def fast_lev_ratio(s1,s2):
+    total_len = len(s1) + len(s2)
+    if total_len > 0:
+        return 1 - levenshtein(s1, s2) / total_len
+    else:
+        return np.NaN
