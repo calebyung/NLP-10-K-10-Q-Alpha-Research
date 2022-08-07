@@ -33,7 +33,7 @@ def init_notebook():
 def init_logger():
     timestamp = datetime.strftime(datetime.now(tz=pytz.timezone('Hongkong')), '%Y%m%d_%H%M%S')
     filename = f'./logs/debug_{timestamp}.log'
-    if os.path.isfile(ffilename):
+    if os.path.isfile(filename):
         os.remove(filename)
     # logging.basicConfig(filename=f, level=logging.INFO, format='%(asctime)s %(message)s', datefmt='[%Y-%m-%d %H:%M:%S]')
 
