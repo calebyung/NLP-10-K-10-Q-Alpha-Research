@@ -1,6 +1,6 @@
 alpha_vantage
 beautifulsoup4
-edgar
+python-edgar
 gensim
 ipython
 joblib
