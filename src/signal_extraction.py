@@ -1,6 +1,6 @@
 # import project modules
 from src.util import *
-import constants as const
+import src.constants as const
 from src.text_processing import *
 from src.signal_10k_def_func import *
 from src.signal_10q_def_func import *
@@ -105,7 +105,12 @@ class SignalExtraction():
 
     def load_word2vec(self):
         # download word2vec
-        wv = load_pkl('../input/word2vecgooglenews300/wv')
+        for i in range(20):
+            try:
+                wv = api.load('word2vec-google-news-300')
+                break
+            except:
+                continue
 
         # get the column index for vocab overlapping with Word2Vec
         wv_vocab_list = list(wv.key_to_index)
@@ -121,25 +126,12 @@ class SignalExtraction():
         del wv
         gc.collect()
 
+    def run_preparation(self):
+        self.load_deep_learning_models()
+        self.load_master_dict()
+        self.build_tfidf_models()
+        self.load_word2vec()
 
-    def gen_8k_feats(self):
-        # get a vector of all calendar dates
-        dates = pd.to_datetime(pd.Series(['2008-01-01'] * 365*11)) \
-            .to_frame() \
-            .rename(columns={0:'filing_date'})
-        dates['filing_date'] = dates['filing_date'] + pd.Series([np.timedelta64(i, 'D') for i in range(len(dates))])
-
-        # count the rolling 1-year number of 8-K filings
-        feats_8k = []
-        for cik in self.master_idx_8k.cik.unique():
-            df = pd.merge(dates, self.master_idx_8k.loc[lambda x: x.cik==cik], how='left', on='filing_date') \
-                .assign(filed=lambda x: x.cik.notnull().astype(int)) \
-                .assign(cik=cik) \
-                .loc[:,['cik','filing_date','filed']] \
-                .assign(feat_cnt_8k = lambda x: x.rolling(365).filed.sum()) \
-                .dropna()
-            feats_8k.append(df)
-        feats_8k = pd.concat(feats_8k).reset_index(drop=True)
 
         # calculate Year-on-Year change
         ret = load_pkl(f'{const.DATA_OUTPUT_PATH}/ret.pkl')
@@ -295,4 +287,42 @@ class SignalExtraction():
         feats = pd.concat(feat_vecs, axis=1)
         log(f'Completed signal generation for CIK {cik}')
         return feats
+
+
+    def gen_signal_10q_all_stocks(self):
+        # generate signal per CIK
+        feats = Parallel(n_jobs=-1)(delayed(self.gen_signal_10q)(cik) for cik in self.master_idx_10q.cik.unique())
+        feats = pd.concat(feats).sort_values('doc_id').reset_index(drop=True)
+
+        # map back to stock
+        df = self.master_idx_10q[['doc_id','cik','entity','filing_date']].drop_duplicates()
+        feats = feats.merge(df, how='inner', on='doc_id')
+        feats = feats.merge(self.cik_map, how='inner', on='cik')
+        cols = [c for c in feats if c[:5]=='feat_']
+        feats = feats[[c for c in feats if c not in cols] + cols]
+        display(feats.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
+        display(feats.head())
+
+        # export
+        save_pkl(feats, 'feats_10q.pkl')
+
+
+    def gen_8k_feats(self):
+        # get a vector of all calendar dates
+        dates = pd.to_datetime(pd.Series(['2008-01-01'] * 365*11)) \
+            .to_frame() \
+            .rename(columns={0:'filing_date'})
+        dates['filing_date'] = dates['filing_date'] + pd.Series([np.timedelta64(i, 'D') for i in range(len(dates))])
+
+        # count the rolling 1-year number of 8-K filings
+        feats_8k = []
+        for cik in self.master_idx_8k.cik.unique():
+            df = pd.merge(dates, self.master_idx_8k.loc[lambda x: x.cik==cik], how='left', on='filing_date') \
+                .assign(filed=lambda x: x.cik.notnull().astype(int)) \
+                .assign(cik=cik) \
+                .loc[:,['cik','filing_date','filed']] \
+                .assign(feat_cnt_8k = lambda x: x.rolling(365).filed.sum()) \
+                .dropna()
+            feats_8k.append(df)
+        feats_8k = pd.concat(feats_8k).reset_index(drop=True)
 

@@ -1,6 +1,6 @@
 # import project modules
 from src.util import *
-import constants as const
+import src.constants as const
 from src.text_processing import *
 
 # import libraries

@@ -1,6 +1,6 @@
 # import project modules
 from src.util import *
-import constants as const
+import src.constants as const
 
 # import libraries
 import numpy as np
@@ -37,8 +37,6 @@ class MasterIndex:
 
         # load full stock list based on returns table
         ret = load_pkl(f'{const.DATA_OUTPUT_PATH}/ret.pkl')
-        ret = ret.set_index('date')
-        ret.index = pd.to_datetime(ret.index)
 
         # derive EDGAR filing start (ret start date - 400 days) and end date
         df = []

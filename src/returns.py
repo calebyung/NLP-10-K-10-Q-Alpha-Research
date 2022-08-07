@@ -1,6 +1,6 @@
 # import project modules
 from src.util import *
-import constants as const
+import src.constants as const
 
 # import other packages
 import os
@@ -22,19 +22,17 @@ class ReturnData:
     def __init__(self):
         self.config = yaml.safe_load(open('config.yml'))
         self.START_DATETIME = datetime.strptime(const.DOWNLOAD_RETURN_START_DATE, '%Y-%m-%d')
+        quandl.ApiConfig.api_key = self.config['quandl_key']
+        self.hist_cons = load_pkl(f'{const.DATA_OUTPUT_PATH}/hist_cons.pkl')
         return
 
     # Use Quandl WIKI API to get all historical price (only up to 27 Mar 2018)
     def get_price_data(self):
-        # init
-        quandl.ApiConfig.api_key = self.config['quandl_key']
-        hist_cons = self.hist_cons
-
         # download returns
         raw_ret = []
-        for yr in hist_cons.index.year.unique().tolist():
+        for yr in self.hist_cons.index.year.unique().tolist():
             df = quandl.get_table('WIKI/PRICES', 
-                                    ticker = ','.join(hist_cons.columns.tolist()), 
+                                    ticker = ','.join(self.hist_cons.columns.tolist()), 
                                     qopts = { 'columns': ['ticker', 'date', 'adj_close'] }, 
                                     date = { 'gte': f'{yr}-01-01', 'lte':f'{yr}-12-31' }, 
                                     paginate=True)
@@ -52,15 +50,15 @@ class ReturnData:
         ret = ret.loc[lambda x: ~x.index.isin(const.MARKET_HOLIDAYS)]
 
         # mask against historical constituents
-        msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
+        msk = self.hist_cons.reindex(index=ret.index, columns=ret.columns)
         ret = ret.mask(~msk)
 
         # align trading days across return and hist_cons
-        hist_cons = hist_cons.reindex(ret.index)
+        self.hist_cons = self.hist_cons.reindex(ret.index)
 
         # compare number of stocks per day
         new_plot()
-        plt.plot(hist_cons.sum(axis=1))
+        plt.plot(self.hist_cons.sum(axis=1))
         plt.plot(ret.notnull().sum(axis=1))
         plt.grid()
         plt.title('Downloaded vs Expected stocks per day')
@@ -68,7 +66,7 @@ class ReturnData:
         plt.close()
 
         # list down the missing stocks
-        missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
+        missing_stocks = [x for x in self.hist_cons.columns.tolist() if x not in ret.columns.tolist()]
         log(f'Number of stocks missed by Quandl: {len(missing_stocks)}')
         log(f'List of missed by Quandl: {", ".join(missing_stocks)}')
 
@@ -78,11 +76,11 @@ class ReturnData:
 
         # list of stock and date missing from Quandl
         missing = []
-        for stock in hist_cons.columns:
+        for stock in self.hist_cons.columns:
             if stock not in ret.columns:
                 missing.append((stock, str(ret.index.min())[:10], str(ret.index.max())[:10]))
             else:
-                date_list = hist_cons[stock].loc[lambda x: x==True].index.tolist()
+                date_list = self.hist_cons[stock].loc[lambda x: x==True].index.tolist()
                 missing_date_list = ret[stock].loc[lambda x: (x.index.isin(date_list)) & (x.isnull())].index.tolist()
                 if len(missing_date_list) >= 10:
                     missing.append((stock, str(min(missing_date_list))[:10], str(max(missing_date_list))[:10]))
@@ -121,26 +119,26 @@ class ReturnData:
                 replace_idx = ret.loc[lambda x: x[stock].isnull()].index.intersection(ret_yf.loc[lambda x: x[stock].notnull()].index)
                 ret.loc[replace_idx, stock] = ret_yf.loc[replace_idx, stock]
             ret = ret[sorted(ret.columns.tolist())]
-            msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
+            msk = self.hist_cons.reindex(index=ret.index, columns=ret.columns)
             ret = ret.mask(~msk)
 
             # compare number of stocks per day
             new_plot()
-            plt.plot(hist_cons.sum(axis=1))
+            plt.plot(self.hist_cons.sum(axis=1))
             plt.plot(ret.notnull().sum(axis=1))
             plt.grid()
             plt.title('Downloaded vs Expected stocks per day')
             plt.show()
             plt.close()
             new_plot()
-            plt.plot(hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
+            plt.plot(self.hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
             plt.grid()
             plt.title('Shortfall of stock per day')
             plt.show()
             plt.close()
 
             # list down the missing stocks
-            missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
+            missing_stocks = [x for x in self.hist_cons.columns.tolist() if x not in ret.columns.tolist()]
             log(f'Number of missing stocks (Quandl + yFinance): {len(missing_stocks)}')
             log(f'List of missing stocks (Quandl + yFinance): {", ".join(missing_stocks)}')
 
@@ -150,11 +148,11 @@ class ReturnData:
 
             # list of stock and date missing from Quandl & Yahoo
             missing = []
-            for stock in hist_cons.columns:
+            for stock in self.hist_cons.columns:
                 if stock not in ret.columns:
                     missing.append((stock, str(ret.index.min())[:10], str(ret.index.max())[:10]))
                 else:
-                    date_list = hist_cons[stock].loc[lambda x: x==True].index.tolist()
+                    date_list = self.hist_cons[stock].loc[lambda x: x==True].index.tolist()
                     missing_date_list = ret[stock].loc[lambda x: (x.index.isin(date_list)) & (x.isnull())].index.tolist()
                     if len(missing_date_list) >= 10:
                         missing.append((stock, str(min(missing_date_list))[:10], str(max(missing_date_list))[:10]))
@@ -202,26 +200,26 @@ class ReturnData:
                 replace_idx = ret.loc[lambda x: x[stock].isnull()].index.intersection(ret_av.loc[lambda x: x[stock].notnull()].index)
                 ret.loc[replace_idx, stock] = ret_av.loc[replace_idx, stock]
             ret = ret[sorted(ret.columns.tolist())]
-            msk = hist_cons.reindex(index=ret.index, columns=ret.columns)
+            msk = self.hist_cons.reindex(index=ret.index, columns=ret.columns)
             ret = ret.mask(~msk)
 
             # compare number of stocks per day
             new_plot()
-            plt.plot(hist_cons.sum(axis=1))
+            plt.plot(self.hist_cons.sum(axis=1))
             plt.plot(ret.notnull().sum(axis=1))
             plt.grid()
             plt.title('Downloaded vs Expected stocks per day')
             plt.show()
             plt.close()
             new_plot()
-            plt.plot(hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
+            plt.plot(self.hist_cons.sum(axis=1)-ret.notnull().sum(axis=1))
             plt.grid()
             plt.title('Shortfall of stock per day')
             plt.show()
             plt.close()
 
             # list down the missing stocks
-            missing_stocks = [x for x in hist_cons.columns.tolist() if x not in ret.columns.tolist()]
+            missing_stocks = [x for x in self.hist_cons.columns.tolist() if x not in ret.columns.tolist()]
             log(f'Number of missing stocks (Quandl + yFinance + AV): {len(missing_stocks)}')
             log(f'List of missing stocks (Quandl + yFinance + AV): {", ".join(missing_stocks)}')
 
@@ -262,7 +260,6 @@ class ReturnData:
 
         # save results
         self.ret = ret
-        self.hist_cons = hist_cons
 
     def cal_returns(self):
         

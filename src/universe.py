@@ -1,6 +1,6 @@
 # import project modules
 from src.util import *
-import constants as const
+import src.constants as const
 
 # import other packages
 import os
@@ -111,6 +111,6 @@ class Universe:
         self.curr_cons = curr_cons
 
     def export(self):
-        save_pkl(self.curr_cons, 'curr_cons.pkl')
-        save_pkl(self.hist_changes, 'hist_changes.pkl')
-        save_pkl(self.hist_cons, 'hist_cons.pkl')
+        save_pkl(self.curr_cons, f'{const.DATA_OUTPUT_PATH}/curr_cons.pkl')
+        save_pkl(self.hist_changes, f'{const.DATA_OUTPUT_PATH}/hist_changes.pkl')
+        save_pkl(self.hist_cons, f'{const.DATA_OUTPUT_PATH}/hist_cons.pkl')
