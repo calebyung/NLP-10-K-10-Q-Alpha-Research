@@ -32,10 +32,24 @@ def init_notebook():
 # initialize logger file
 def init_logger():
     timestamp = datetime.strftime(datetime.now(tz=pytz.timezone('Hongkong')), '%Y%m%d_%H%M%S')
-    f = f'./logs/debug_{timestamp}.log'
-    if os.path.isfile(f):
-        os.remove(f)
-    logging.basicConfig(filename=f, level=logging.INFO, format='%(asctime)s %(message)s', datefmt='[%Y-%m-%d %H:%M:%S]')
+    filename = f'./logs/debug_{timestamp}.log'
+    if os.path.isfile(ffilename):
+        os.remove(filename)
+    # logging.basicConfig(filename=f, level=logging.INFO, format='%(asctime)s %(message)s', datefmt='[%Y-%m-%d %H:%M:%S]')
+
+    # Create a custom logger
+    logger = logging.getLogger(__name__)
+
+    # Create handlers
+    f_handler = logging.FileHandler(filename)
+    f_handler.setLevel(logging.INFO)
+
+    # Create formatters and add it to handlers
+    f_format = logging.Formatter('%(asctime)s %(message)s', datefmt='[%Y-%m-%d %H:%M:%S]')
+    f_handler.setFormatter(f_format)
+
+    # Add handlers to the logger
+    logger.addHandler(f_handler)
 
 # log - to replace the print statement by adding the timestamp
 def log(msg):
