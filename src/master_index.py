@@ -137,6 +137,7 @@ class MasterIndex:
 
     # function to contruct full 10-K HTML URLs
     def get_html_link(self, i, full_submission_filename, index_url, type):
+        print(i, full_submission_filename, index_url, type)
         time.sleep(0.1)
         try: 
             # get 10-K document name
