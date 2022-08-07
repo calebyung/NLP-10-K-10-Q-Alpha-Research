@@ -117,12 +117,12 @@ class MasterIndex:
         # separate 10-K, 10-Q, 8-K
         master_idx_10q = master_idx.loc[lambda x: x.filing_type=='10-Q'].reset_index(drop=True)
         master_idx_8k = master_idx.loc[lambda x: x.filing_type=='8-K'].reset_index(drop=True)
-        master_idx = master_idx.loc[lambda x: x.filing_type=='10-K'].reset_index(drop=True)
+        master_idx_10k = master_idx.loc[lambda x: x.filing_type=='10-K'].reset_index(drop=True)
 
         log(f'Shape of 10-K master_idx: {master_idx.shape}')
         log(f'Shape of 10-Q master_idx: {master_idx_10q.shape}')
         log(f'Shape of 8-K master_idx: {master_idx_8k.shape}')
-        log(f'Avg number of 10-K filing per stock: {master_idx.shape[0] / master_idx.cik.nunique()}')
+        log(f'Avg number of 10-K filing per stock: {master_idx_10k.shape[0] / master_idx_10k.cik.nunique()}')
         log(f'Avg number of 10-Q filing per stock: {master_idx_10q.shape[0] / master_idx_10q.cik.nunique()}')
         log(f'Avg number of 8-K filing per stock: {master_idx_8k.shape[0] / master_idx_8k.cik.nunique()}')
         display(master_idx.sample(5))
@@ -130,7 +130,7 @@ class MasterIndex:
         
         # save results
         self.cik_map = cik_map
-        self.master_idx = master_idx
+        self.master_idx_10k = master_idx_10k
         self.master_idx_10q = master_idx_10q
         self.master_idx_8k = master_idx_8k
 
@@ -159,38 +159,38 @@ class MasterIndex:
         return i, full_url
 
     def append_full_html_link_10k(self): 
-        master_idx = self.master_idx
-        results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx.iloc[i]['full_submission_filename'], master_idx.iloc[i]['index_url'], '10-K') for i in range(len(master_idx)))
+        master_idx_10k = self.master_idx_10k
+        results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k)))
         results = pd.DataFrame(results, columns=['i','url_10k']).set_index('i')
-        master_idx = master_idx.merge(results, how='left', left_index=True, right_index=True)
+        master_idx_10k = master_idx_10k.merge(results, how='left', left_index=True, right_index=True)
 
         # remove nulls and pdf
-        log(f'Percentage of null: {master_idx["url_10k"].isnull().sum() / master_idx.shape[0]}')
-        log(f'Percentage of PDF: {(master_idx["url_10k"].fillna("").str.lower().str[-3:]=="pdf").sum() / master_idx.shape[0]}')
-        master_idx = master_idx.loc[lambda x: (x.url_10k.fillna('').str.lower().str[-3:].isin(['htm','tml']))].reset_index(drop=True)
+        log(f'Percentage of null: {master_idx_10k["url_10k"].isnull().sum() / master_idx_10k.shape[0]}')
+        log(f'Percentage of PDF: {(master_idx_10k["url_10k"].fillna("").str.lower().str[-3:]=="pdf").sum() / master_idx_10k.shape[0]}')
+        master_idx_10k = master_idx_10k.loc[lambda x: (x.url_10k.fillna('').str.lower().str[-3:].isin(['htm','tml']))].reset_index(drop=True)
 
         # check again CIK with single doc
-        ciks = master_idx.groupby('cik')['filing_date'].count().loc[lambda x: x<2].index.tolist()
+        ciks = master_idx_10k.groupby('cik')['filing_date'].count().loc[lambda x: x<2].index.tolist()
         log(f'Number of CIK with single doc: {len(ciks)}')
-        master_idx = master_idx.loc[lambda x: ~x.cik.isin(ciks)].reset_index(drop=True)
+        master_idx_10k = master_idx_10k.loc[lambda x: ~x.cik.isin(ciks)].reset_index(drop=True)
 
         # assign doc_id
-        master_idx = master_idx \
+        master_idx_10k = master_idx_10k \
             .assign(doc_id = lambda x: x.cik + '_' + x.filing_date.apply(lambda y: str(y)[:10].replace('-',''))) \
             .sort_values('doc_id') \
             .reset_index(drop=True)
 
         # logging
-        assert master_idx.doc_id.nunique()==master_idx.shape[0]
-        log(f'Shape of master_idx: {master_idx.shape}')
-        display(master_idx.sample(5))
+        assert master_idx_10k.doc_id.nunique()==master_idx_10k.shape[0]
+        log(f'Shape of master_idx_10k: {master_idx_10k.shape}')
+        display(master_idx_10k.sample(5))
 
         # save results
-        self.master_idx = master_idx
+        self.master_idx_10k = master_idx_10k
 
     def append_full_html_link_10q(self): 
         master_idx_10q = self.master_idx_10q
-        results = Parallel(n_jobs=-1)(delayed(self.get_html_link)(i, master_idx_10q.iloc[i]['full_submission_filename'], master_idx_10q.iloc[i]['index_url'], '10-Q') for i in range(len(master_idx_10q)))
+        results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10q.iloc[i]['full_submission_filename'], master_idx_10q.iloc[i]['index_url'], '10-Q') for i in range(len(master_idx_10q)))
         results = pd.DataFrame(results, columns=['i','url_10q']).set_index('i')
         master_idx_10q = master_idx_10q.merge(results, how='left', left_index=True, right_index=True)
 
@@ -222,7 +222,7 @@ class MasterIndex:
     def export(self):
         save_pkl(self.stock_map, f'{const.DATA_OUTPUT_PATH}/stock_map.pkl')
         save_pkl(self.cik_map, f'{const.DATA_OUTPUT_PATH}/cik_map.pkl')
-        save_pkl(self.master_idx, f'{const.DATA_OUTPUT_PATH}/master_idx.pkl')
+        save_pkl(self.master_idx_10k, f'{const.DATA_OUTPUT_PATH}/master_idx_10k.pkl')
         save_pkl(self.master_idx_10q, f'{const.DATA_OUTPUT_PATH}/master_idx_10q.pkl')
         save_pkl(self.master_idx_8k, f'{const.DATA_OUTPUT_PATH}/master_idx_8k.pkl')
 
