@@ -1,18 +1,9 @@
 # Byte-compiled / optimized / DLL files
-# __pycache__/
-# *__pycache__*/
-# *.py[cod]
-# *.pyc
 *.log
-
 *.pot
-
 *.pyc
-
 */*/*/__pycache__/
-
 */*/__pycache__/
-
 */__pycache__/
 
 
