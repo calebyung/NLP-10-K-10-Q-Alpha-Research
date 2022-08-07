@@ -31,11 +31,11 @@ def init_notebook():
 
 # initialize logger file
 def init_logger():
+    # define filename
     timestamp = datetime.strftime(datetime.now(tz=pytz.timezone('Hongkong')), '%Y%m%d_%H%M%S')
     filename = f'./logs/debug_{timestamp}.log'
     if os.path.isfile(filename):
         os.remove(filename)
-    # logging.basicConfig(filename=f, level=logging.INFO, format='%(asctime)s %(message)s', datefmt='[%Y-%m-%d %H:%M:%S]')
 
     # Create a custom logger
     logger = logging.getLogger(__name__)
@@ -51,18 +51,21 @@ def init_logger():
     # Add handlers to the logger
     logger.addHandler(f_handler)
 
+
 # log - to replace the print statement by adding the timestamp
 def log(msg):
     now = datetime.strftime(datetime.now(tz=pytz.timezone('Hongkong')), '%Y-%m-%d %H:%M:%S')
     print(f'[{now}] {msg}')
     logging.info(msg)
     
+
 # pickle save and load quick functions
 def save_pkl(obj, filename):
     pickle.dump(obj, open(filename, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     return
 def load_pkl(filename):
     return pickle.load(open(filename, 'rb'))
+
 
 # calculate total file size given a folder path
 def get_size(path='.'):
@@ -75,11 +78,13 @@ def get_size(path='.'):
                 total_size += os.path.getsize(fp)
     return total_size
 
+
 # function to clear all contents in the current directory
 def clear_output():
     for file in os.listdir():
         os.remove(file)
     return
+
 
 # function to indicate creating a new plot within the same output cell
 fig_num = 0
