@@ -36,7 +36,7 @@ class SignalExtraction():
     def __init__(self):
         nltk.download('punkt')
         self.config = yaml.safe_load(open('config.yml'))
-        self.master_idx = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx.pkl')
+        self.master_idx_10k = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx_10k.pkl')
         self.master_idx_10q = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx_10q.pkl')
         self.master_idx_8k = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx_8k.pkl')
         self.cik_map = load_pkl(f'{const.DATA_OUTPUT_PATH}/cik_map.pkl')
@@ -69,7 +69,7 @@ class SignalExtraction():
 
     def build_tfidf_models(self):
         # sample and clean doc
-        master_idx_sampled = self.master_idx \
+        master_idx_sampled = self.master_idx_10k \
             .sort_values(['cik','filing_date']).reset_index(drop=True) \
             .groupby('cik').last().reset_index() \
 
@@ -154,7 +154,7 @@ class SignalExtraction():
 
     def gen_signal_10k(self, cik):
         log(f'{cik}: Started signal generation')
-        df = self.master_idx.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
+        df = self.master_idx_10k.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
         docs = {}
         for i in range(len(df)):
             
@@ -210,11 +210,11 @@ class SignalExtraction():
 
     def gen_signal_10k_all_stocks(self):
         # generate signal per CIK
-        feats = Parallel(n_jobs=-1)(delayed(self.gen_signal_10k)(cik) for cik in self.master_idx.cik.unique())
+        feats = Parallel(n_jobs=-1)(delayed(self.gen_signal_10k)(cik) for cik in self.master_idx_10k.cik.unique())
         feats = pd.concat(feats).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
-        df = self.master_idx[['doc_id','cik','entity','filing_date']].drop_duplicates()
+        df = self.master_idx_10k[['doc_id','cik','entity','filing_date']].drop_duplicates()
         feats = feats.merge(df, how='inner', on='doc_id')
         feats = feats.merge(self.cik_map, how='inner', on='cik')
         cols = [c for c in feats if c[:5]=='feat_']
@@ -249,7 +249,7 @@ class SignalExtraction():
 
     def gen_signal_10q(self, cik):
         log(f'{cik}: Started signal generation')
-        df = self.master_idx.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
+        df = self.master_idx_10q.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
         docs = {}
         for i in range(len(df)):
             
