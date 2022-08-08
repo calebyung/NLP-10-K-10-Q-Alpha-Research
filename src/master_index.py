@@ -137,7 +137,6 @@ class MasterIndex:
 
     # function to contruct full 10-K HTML URLs
     def get_html_link(self, i, full_submission_filename, index_url, type):
-        print(i, full_submission_filename, index_url, type)
         time.sleep(0.1)
         try: 
             # get 10-K document name
@@ -191,7 +190,8 @@ class MasterIndex:
 
     def append_full_html_link_10q(self): 
         master_idx_10q = self.master_idx_10q
-        results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10q.iloc[i]['full_submission_filename'], master_idx_10q.iloc[i]['index_url'], '10-Q') for i in range(len(master_idx_10q)))
+        # results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10q.iloc[i]['full_submission_filename'], master_idx_10q.iloc[i]['index_url'], '10-Q') for i in range(len(master_idx_10q)))
+        results = [self.get_html_link(i, master_idx_10q.iloc[i]['full_submission_filename'], master_idx_10q.iloc[i]['index_url'], '10-Q') for i in range(len(master_idx_10q))]
         results = pd.DataFrame(results, columns=['i','url_10q']).set_index('i')
         master_idx_10q = master_idx_10q.merge(results, how='left', left_index=True, right_index=True)
 
