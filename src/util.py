@@ -11,6 +11,7 @@ import pandas as pd
 from datetime import datetime, date
 import pickle
 import pytz
+import matplotlib
 from matplotlib import pyplot as plt
 from polyleven import levenshtein
 
@@ -23,11 +24,21 @@ from polyleven import levenshtein
 
 # function to initialize notebook settings
 def init_notebook():
+    # load config
+    config = yaml.safe_load(open('config.yml'))
+    # pandas setting
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_colwidth', None)
     pd.options.mode.chained_assignment = None
+    # warnings setting
     warnings.filterwarnings("ignore")
     warnings.simplefilter(action='ignore', category=FutureWarning)
+    # matplotlib setting
+    matplotlib.rcParams['text.color'] = config['plt_color']
+    matplotlib.rcParams['axes.labelcolor'] = config['plt_color']
+    matplotlib.rcParams['xtick.color'] = config['plt_color']
+    matplotlib.rcParams['ytick.color'] = config['plt_color']
+
 
 # initialize logger file
 def init_logger():
