@@ -256,10 +256,16 @@ def _skip_header(f):
 
 
 def _url_get(url, user_agent):
-    import urllib.request
-    hdr = { 'User-Agent' : user_agent }
-    req = urllib.request.Request(url, headers=hdr)
-    content = urllib.request.urlopen(req).read()
+    # import urllib.request
+    # hdr = { 'User-Agent' : user_agent }
+    # req = urllib.request.Request(url, headers=hdr)
+    # content = urllib.request.urlopen(req).read()
+
+    heads = {'Host': 'www.sec.gov', 'Connection': 'close',
+         'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+         'User-Agent': user_agent,
+         }
+    content = requests.get(url, headers=heads).content
     return content
 
 
