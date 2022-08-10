@@ -69,7 +69,11 @@ class SignalExtraction():
 
         def download_doc(i):
             url = master_idx_sampled.iloc[i]['url_10k']
-            txt = requests.get(url, headers={"user-agent": f"chan_tai_man_{int(float(np.random.rand(1)) * 1e7)}@gmail.com"}).text
+            head = {'Host': 'www.sec.gov', 'Connection': 'close',
+                    'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+                    'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
+                    }
+            txt = requests.get(url, headers=head).text
             txt = soup = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
             txt = clean_doc1(txt)
             item_pos = find_item_pos(txt)
