@@ -21,7 +21,7 @@ filing_end_date: '2018-03-31'
 
 edgar_index_start_year: 2006
 edgar_index_end_year: 2018
-edgar_user_agent: 'alpharesearch10k10q@gmail.com' 
+edgar_user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36'
 
 gpu_enabled: False
 n_sample_per_cik: 1

@@ -259,7 +259,7 @@ def _url_get(url, user_agent):
     import urllib.request
     hdr = { 'User-Agent' : user_agent }
     req = urllib.request.Request(url, headers=hdr)
-    content =urllib.request.urlopen(req).read()
+    content = urllib.request.urlopen(req).read()
     return content
 
 
