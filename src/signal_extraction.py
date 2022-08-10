@@ -17,16 +17,10 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import math
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import jaccard_score
-import edgar
-from polyleven import levenshtein
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import torch
 import nltk
-from nltk import tokenize
 from gensim import downloader as api
 import gc
 
@@ -307,5 +301,4 @@ class SignalExtraction():
             feats_8k.append(df)
         feats_8k = pd.concat(feats_8k).reset_index(drop=True)
 
-# testing
 
