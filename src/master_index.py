@@ -8,7 +8,7 @@ import pandas as pd
 from IPython.display import display
 from joblib import Parallel, delayed
 import requests
-import edgar
+# import edgar
 import time
 import yaml
 import zipfile
