@@ -133,25 +133,6 @@ class SignalExtraction():
         self.load_word2vec()
 
 
-        # calculate Year-on-Year change
-        ret = load_pkl(f'{const.DATA_OUTPUT_PATH}/ret.pkl')
-        feats_8k = feats_8k \
-            .merge(self.cik_map, how='inner', on='cik') \
-            .rename(columns={'filing_date':'date'}) \
-            .loc[:,['stock','date','feat_cnt_8k']] \
-            .sort_values(['stock','date']) \
-            .assign(feat_cnt_8k_prev = lambda x: x.groupby('stock').feat_cnt_8k.shift(365)) \
-            .assign(feat_cnt_8k_diff = lambda x: x.feat_cnt_8k - x.feat_cnt_8k_prev) \
-            .assign(feat_cnt_8k = lambda x: x.feat_cnt_8k * -1,
-                    feat_cnt_8k_diff = lambda x: x.feat_cnt_8k_diff * -1) \
-            .loc[lambda x: x.date.isin(ret.index), ['stock','date','feat_cnt_8k','feat_cnt_8k_diff']] \
-            .dropna()
-        log(f'Shape of 8-K feats: {feats_8k.shape}')
-
-        # export
-        save_pkl(feats_8k, 'feats_8k.pkl')
-
-
     def gen_signal_10k(self, cik):
         log(f'{cik}: Started signal generation')
         df = self.master_idx_10k.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
