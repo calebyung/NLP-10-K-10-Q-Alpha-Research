@@ -134,14 +134,14 @@ class MasterIndex:
         master_idx_8k = master_idx.loc[lambda x: x.filing_type=='8-K'].reset_index(drop=True)
         master_idx_10k = master_idx.loc[lambda x: x.filing_type=='10-K'].reset_index(drop=True)
 
-        log(f'Shape of 10-K master_idx: {master_idx.shape}')
+        log(f'Shape of 10-K master_idx: {master_idx_10k.shape}')
         log(f'Shape of 10-Q master_idx: {master_idx_10q.shape}')
         log(f'Shape of 8-K master_idx: {master_idx_8k.shape}')
         log(f'Avg number of 10-K filing per stock: {master_idx_10k.shape[0] / master_idx_10k.cik.nunique()}')
         log(f'Avg number of 10-Q filing per stock: {master_idx_10q.shape[0] / master_idx_10q.cik.nunique()}')
         log(f'Avg number of 8-K filing per stock: {master_idx_8k.shape[0] / master_idx_8k.cik.nunique()}')
-        display(master_idx.sample(5))
-        display(master_idx.groupby('cik')['full_submission_filename'].nunique().value_counts())
+        display(master_idx_10k.sample(5))
+        display(master_idx_10k.groupby('cik')['full_submission_filename'].nunique().value_counts())
         
         # save results
         self.cik_map = cik_map
@@ -156,7 +156,11 @@ class MasterIndex:
         try: 
             # get 10-K document name
             url = f'https://www.sec.gov/Archives/{index_url}'
-            html = requests.get(url, headers={"user-agent": f"chan_tai_man_{int(float(np.random.rand(1)) * 1e7)}@gmail.com"}).content
+            head = {'Host': 'www.sec.gov', 'Connection': 'close',
+                    'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+                    'User-Agent': f"chan_tai_man_{int(float(np.random.rand(1)) * 1e7)}@gmail.com",
+                    }
+            html = requests.get(url, headers=head).content
             doc_name = pd.read_html(html)[0] \
                 .loc[lambda x: x.Type==type] \
                 .sort_values('Size', ascending=False) \
