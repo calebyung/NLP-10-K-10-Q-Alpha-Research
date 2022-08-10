@@ -158,7 +158,8 @@ class MasterIndex:
             url = f'https://www.sec.gov/Archives/{index_url}'
             head = {'Host': 'www.sec.gov', 'Connection': 'close',
                     'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
-                    'User-Agent': f"chan_tai_man_{int(float(np.random.rand(1)) * 1e7)}@gmail.com",
+                    # 'User-Agent': f"chan_tai_man_{int(float(np.random.rand(1)) * 1e7)}@gmail.com",
+                    'User-Agent': f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36{int(float(np.random.rand(1)) * 1e7)}"
                     }
             html = requests.get(url, headers=head).content
             doc_name = pd.read_html(html)[0] \
