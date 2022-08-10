@@ -84,6 +84,7 @@ class MasterIndex:
                 "%s-%s.tsv" % (x[0], x[1]),)
                 for x in history]
         for i, file in enumerate(tasks):
+            log(file)
             _download(file, const.DATA_OUTPUT_PATH, self.config['edgar_user_agent'])
 
         # # download all index
