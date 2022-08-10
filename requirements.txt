@@ -23,7 +23,7 @@ yfinance
 # tensorflow
 # tensorflow_hub
 # tensorflow_text
-top2vec
+# top2vec
 zipfile
 tempfile
 io
