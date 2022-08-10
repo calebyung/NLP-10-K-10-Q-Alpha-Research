@@ -1,6 +1,6 @@
 alpha_vantage
 beautifulsoup4
-python-edgar
+# python-edgar
 gensim
 ipython
 joblib
@@ -10,7 +10,6 @@ numpy
 pandas
 polyleven
 python_dateutil
-python_edgar
 pytz
 PyYAML
 Quandl
@@ -25,3 +24,6 @@ tensorflow
 tensorflow_hub
 tensorflow_text
 top2vec
+zipfile
+tempfile
+io
