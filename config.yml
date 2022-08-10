@@ -29,3 +29,5 @@ n_sample_per_cik: 1
 retry_connect: 3
 retry_backoff_factor: 0.5
 
+max_df: 1.0
+

@@ -84,8 +84,8 @@ class SignalExtraction():
         doc_list = [docs[cik]['full'] for cik in docs]
 
         # build tfidf for 1 and 2 gram
-        self.global_tfidf_1g = TfidfVectorizer(ngram_range=(1,1), norm='l2', min_df=0.0, max_df=0.7, use_idf=True, binary=False, token_pattern=r"(?u)\b[a-z]{3,}\b").fit(doc_list)
-        self.global_tfidf_2g = TfidfVectorizer(ngram_range=(1,2), norm='l2', min_df=0.0, max_df=0.7, use_idf=True, binary=False, token_pattern=r"(?u)\b[a-z]{3,}\b").fit(doc_list)
+        self.global_tfidf_1g = TfidfVectorizer(ngram_range=(1,1), norm='l2', min_df=0.0, max_df=self.config['max_df'], use_idf=True, binary=False, token_pattern=r"(?u)\b[a-z]{3,}\b").fit(doc_list)
+        self.global_tfidf_2g = TfidfVectorizer(ngram_range=(1,2), norm='l2', min_df=0.0, max_df=self.config['max_df'], use_idf=True, binary=False, token_pattern=r"(?u)\b[a-z]{3,}\b").fit(doc_list)
         log(f'Vocab size of TFIDF (1-gram): {len(self.global_tfidf_1g.vocabulary_)}')
         log(f'Vocab size of TFIDF (2-gram): {len(self.global_tfidf_2g.vocabulary_)}')
 
