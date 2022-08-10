@@ -11,6 +11,9 @@ import requests
 import edgar
 import time
 import yaml
+import zipfile
+import tempfile
+import io
 
 
 # class to build master index
@@ -73,7 +76,18 @@ class MasterIndex:
 
     def download_master_index(self):
         # download all index
-        edgar.download_index(dest=f'{const.DATA_OUTPUT_PATH}/', since_year=self.config['edgar_index_start_year'], user_agent=self.config['edgar_user_agent'], skip_all_present_except_last=False)
+        years = range(self.config['edgar_index_start_year'], self.config['edgar_index_end_year'] + 1)
+        quarters = ["QTR1", "QTR2", "QTR3", "QTR4"]
+        history = list((y, q) for y in years for q in quarters)
+        history.reverse()
+        tasks = [("https://www.sec.gov/Archives/edgar/full-index/%s/%s/master.zip" % (x[0], x[1]),
+                "%s-%s.tsv" % (x[0], x[1]),)
+                for x in history]
+        for i, file in enumerate(tasks):
+            _download(file, const.DATA_OUTPUT_PATH, self.config['edgar_user_agent'])
+
+        # # download all index
+        # edgar.download_index(dest=f'{const.DATA_OUTPUT_PATH}/', since_year=self.config['edgar_index_start_year'], user_agent=self.config['edgar_user_agent'], skip_all_present_except_last=False)
 
         # combin index
         master_idx = []
@@ -226,5 +240,54 @@ class MasterIndex:
         save_pkl(self.master_idx_10k, f'{const.DATA_OUTPUT_PATH}/master_idx_10k.pkl')
         save_pkl(self.master_idx_10q, f'{const.DATA_OUTPUT_PATH}/master_idx_10q.pkl')
         save_pkl(self.master_idx_8k, f'{const.DATA_OUTPUT_PATH}/master_idx_8k.pkl')
+
+
+
+def _append_html_version(line):
+    sep = "|"
+    chunks = line.split(sep)
+    return line + sep + chunks[-1].replace(".txt", "-index.html")
+
+
+def _skip_header(f):
+    for x in range(0, 11):
+        f.readline()
+
+
+def _url_get(url, user_agent):
+    import urllib.request
+    hdr = { 'User-Agent' : user_agent }
+    req = urllib.request.Request(url, headers=hdr)
+    content =urllib.request.urlopen(req).read()
+    return content
+
+
+def _download(file, dest, user_agent):
+    """
+    Download an idx archive from EDGAR
+    This will read idx files and unzip
+    archives + read the master.idx file inside
+    """
+    if not dest.endswith("/"):
+        dest = "%s/" % dest
+
+    url = file[0]
+    dest_name = file[1]
+
+    if url.endswith("zip"):
+        with tempfile.TemporaryFile(mode="w+b") as tmp:
+            tmp.write(_url_get(url, user_agent))
+            with zipfile.ZipFile(tmp).open("master.idx") as z:
+                with io.open(dest + dest_name, "w+", encoding="utf-8") as idxfile:
+                    _skip_header(z)
+                    lines = z.read()
+                    lines = lines.decode("latin-1")
+                    lines = map(
+                        lambda line: _append_html_version(line), lines.splitlines()
+                    )
+                    idxfile.write("\n".join(lines)+"\n")
+                    logging.info("> downloaded %s to %s%s" % (url, dest, dest_name))
+    else:
+        raise logging.error("python-edgar only supports zipped index files")
 
     
