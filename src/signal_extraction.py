@@ -169,20 +169,20 @@ class SignalExtraction():
                         gen_feat_ch_item_1a_len(docs),
                         gen_feat_ch_item_1b_len(docs),
                         gen_feat_ch_item_3_len(docs),
-                        gen_feat_full_cos_1gram(docs),
-                        gen_feat_full_cos_2gram(docs),
+                        gen_feat_full_cos_1gram(docs, self.global_tfidf_1g),
+                        gen_feat_full_cos_2gram(docs, self.global_tfidf_2g),
                         gen_feat_full_jac_1gram(docs),
                         gen_feat_full_jac_2gram(docs),
                         gen_feat_item_1a_lev(docs),
                         gen_feat_item_7_lev(docs),
-                        gen_feat_lm_postive(docs),
-                        gen_feat_lm_uncertainty(docs),
-                        gen_feat_lm_litigious(docs),
-                        gen_feat_word2vec(docs)]
+                        gen_feat_lm_postive(docs, self.positive_word_list, self.negative_word_list),
+                        gen_feat_lm_uncertainty(docs, self.uncertainty_word_list),
+                        gen_feat_lm_litigious(docs, self.litigious_word_list),
+                        gen_feat_word2vec(docs, self.global_tfidf_1g, self.tfidf_1g_wv_idx, self.wv_subset)]
         if self.config['gpu_enabled']:
-            feat_vecs += [gen_feat_sen_enc(docs),
-                            gen_feat_item_sentiment(docs),
-                            gen_feat_fls_sentiment(docs)]
+            feat_vecs += [gen_feat_sen_enc(docs, self.st_model),
+                            gen_feat_item_sentiment(docs, self.fb_tokenizer, self.fb_model),
+                            gen_feat_fls_sentiment(docs, self.fb_tokenizer, self.fb_model)]
         feats = pd.concat(feat_vecs, axis=1)
         log(f'Completed signal generation for CIK {cik}')
         return feats
@@ -263,8 +263,8 @@ class SignalExtraction():
         feat_vecs += [gen_feat_ch_full_len_10q(docs, doc_pairs),
                         gen_feat_full_cos_1gram_10q(docs, doc_pairs),
                         gen_feat_full_jac_1gram_10q(docs, doc_pairs),
-                        gen_feat_word2vec_10q(docs, doc_pairs),
-                        gen_feat_lm_postive_10q(docs, doc_pairs)]
+                        gen_feat_word2vec_10q(docs, doc_pairs, self.global_tfidf_1g, self.tfidf_1g_wv_idx, self.wv_subset),
+                        gen_feat_lm_postive_10q(docs, doc_pairs, self.positive_word_list, self.negative_word_list)]
         feats = pd.concat(feat_vecs, axis=1)
         log(f'Completed signal generation for CIK {cik}')
         return feats
