@@ -23,6 +23,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import nltk
 from gensim import downloader as api
 import gc
+import multiprocessing
 
 
 class SignalExtraction():
@@ -189,7 +190,8 @@ class SignalExtraction():
 
     def gen_signal_10k_all_stocks(self):
         # generate signal per CIK
-        feats = Parallel(n_jobs=-1)(delayed(self.gen_signal_10k)(cik) for cik in self.master_idx_10k.cik.unique())
+        pool = multiprocessing.Pool(processes=self.config['n_jobs'])
+        feats = pool.map(self.gen_signal_10k, self.master_idx_10k.cik.unique().tolist())
         feats = pd.concat(feats).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
@@ -270,7 +272,8 @@ class SignalExtraction():
 
     def gen_signal_10q_all_stocks(self):
         # generate signal per CIK
-        feats = Parallel(n_jobs=-1)(delayed(self.gen_signal_10q)(cik) for cik in self.master_idx_10q.cik.unique())
+        pool = multiprocessing.Pool(processes=self.config['n_jobs'])
+        feats = pool.map(self.gen_signal_10q, self.master_idx_10q.cik.unique().tolist())
         feats = pd.concat(feats).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock

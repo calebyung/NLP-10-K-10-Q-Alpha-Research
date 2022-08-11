@@ -178,19 +178,14 @@ class MasterIndex:
         log(f'[{i}] {full_url}') if i%200==0 else None
         return i, full_url
 
-    # def get_html_link(self, arg):
-    #     i, full_submission_filename, index_url, type = arg
-    #     print(i)
-    #     return i
-
 
     def append_full_html_link_10k(self): 
         master_idx_10k = self.master_idx_10k
         pool = multiprocessing.Pool(processes=self.config['n_jobs'])
-        results = pool.map(self.get_html_link, zip(list(range(len(master_idx_10k))), master_idx_10k.full_submission_filename.tolist(), master_idx_10k.index_url.tolist(), ['10-K']*len(master_idx_10k)))
-        # i, full_submission_filename, index_url, type = i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K'
-        # results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, full_submission_filename, index_url, type) for i in range(len(master_idx_10k)))
-        # results = [self.get_html_link(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k))]
+        results = pool.map(self.get_html_link, zip(list(range(len(master_idx_10k))), 
+                                                    master_idx_10k.full_submission_filename.tolist(), 
+                                                    master_idx_10k.index_url.tolist(), 
+                                                    ['10-K']*len(master_idx_10k)))
         results = pd.DataFrame(results, columns=['i','url_10k']).set_index('i')
         master_idx_10k = master_idx_10k.merge(results, how='left', left_index=True, right_index=True)
 
@@ -220,8 +215,11 @@ class MasterIndex:
 
     def append_full_html_link_10q(self): 
         master_idx_10q = self.master_idx_10q
-        # results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10q.iloc[i]['full_submission_filename'], master_idx_10q.iloc[i]['index_url'], '10-Q') for i in range(len(master_idx_10q)))
-        results = [self.get_html_link(i, master_idx_10q.iloc[i]['full_submission_filename'], master_idx_10q.iloc[i]['index_url'], '10-Q') for i in range(len(master_idx_10q))]
+        pool = multiprocessing.Pool(processes=self.config['n_jobs'])
+        results = pool.map(self.get_html_link, zip(list(range(len(master_idx_10q))), 
+                                                    master_idx_10q.full_submission_filename.tolist(), 
+                                                    master_idx_10q.index_url.tolist(), 
+                                                    ['10-K']*len(master_idx_10q)))
         results = pd.DataFrame(results, columns=['i','url_10q']).set_index('i')
         master_idx_10q = master_idx_10q.merge(results, how='left', left_index=True, right_index=True)
 
