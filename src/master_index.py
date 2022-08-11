@@ -177,7 +177,8 @@ class MasterIndex:
     #     log(f'[{i}] {full_url}') if i%200==0 else None
     #     return i, full_url
 
-    def get_html_link(self, i, full_submission_filename, index_url, type):
+    def get_html_link(self, arg):
+        i, full_submission_filename, index_url, type = arg
         print(i)
         return i
 
