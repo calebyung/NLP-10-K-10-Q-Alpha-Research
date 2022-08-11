@@ -150,36 +150,41 @@ class MasterIndex:
         self.master_idx_8k = master_idx_8k
 
 
-    # function to contruct full 10-K HTML URLs
-    def get_html_link(self, i, full_submission_filename, index_url, type):
-        time.sleep(0.1)
-        try: 
-            # get 10-K document name
-            url = f'https://www.sec.gov/Archives/{index_url}'
-            head = {'Host': 'www.sec.gov', 'Connection': 'close',
-                    'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
-                    'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
-                    }
-            html = requests.get(url, headers=head).content
-            doc_name = pd.read_html(html)[0] \
-                .loc[lambda x: x.Type==type] \
-                .sort_values('Size', ascending=False) \
-                .Document \
-                .tolist()[0]
+    # # function to contruct full 10-K HTML URLs
+    # def get_html_link(self, i, full_submission_filename, index_url, type):
+    #     time.sleep(0.1)
+    #     try: 
+    #         # get 10-K document name
+    #         url = f'https://www.sec.gov/Archives/{index_url}'
+    #         head = {'Host': 'www.sec.gov', 'Connection': 'close',
+    #                 'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+    #                 'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
+    #                 }
+    #         html = requests.get(url, headers=head).content
+    #         doc_name = pd.read_html(html)[0] \
+    #             .loc[lambda x: x.Type==type] \
+    #             .sort_values('Size', ascending=False) \
+    #             .Document \
+    #             .tolist()[0]
 
-            # construct full URL
-            filing_id = full_submission_filename.replace('.txt','').replace('-','')
-            full_url = f'https://www.sec.gov/Archives/{filing_id}/{doc_name}'
-        except:
-            full_url = None
+    #         # construct full URL
+    #         filing_id = full_submission_filename.replace('.txt','').replace('-','')
+    #         full_url = f'https://www.sec.gov/Archives/{filing_id}/{doc_name}'
+    #     except:
+    #         full_url = None
         
-        log(f'[{i}] {full_url}') if i%200==0 else None
-        return i, full_url
+    #     log(f'[{i}] {full_url}') if i%200==0 else None
+    #     return i, full_url
+
+    def get_html_link(self, i, full_submission_filename, index_url, type):
+        print(i)
+        return i
+
 
     def append_full_html_link_10k(self): 
         master_idx_10k = self.master_idx_10k
-        # results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k)))
-        results = [self.get_html_link(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k))]
+        results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k)))
+        # results = [self.get_html_link(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k))]
         results = pd.DataFrame(results, columns=['i','url_10k']).set_index('i')
         master_idx_10k = master_idx_10k.merge(results, how='left', left_index=True, right_index=True)
 
