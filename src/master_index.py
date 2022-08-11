@@ -183,7 +183,8 @@ class MasterIndex:
 
     def append_full_html_link_10k(self): 
         master_idx_10k = self.master_idx_10k
-        results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k)))
+        i, full_submission_filename, index_url, type = i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K'
+        results = Parallel(n_jobs=self.config['n_jobs'])(delayed(self.get_html_link)(i, full_submission_filename, index_url, type) for i in range(len(master_idx_10k)))
         # results = [self.get_html_link(i, master_idx_10k.iloc[i]['full_submission_filename'], master_idx_10k.iloc[i]['index_url'], '10-K') for i in range(len(master_idx_10k))]
         results = pd.DataFrame(results, columns=['i','url_10k']).set_index('i')
         master_idx_10k = master_idx_10k.merge(results, how='left', left_index=True, right_index=True)
