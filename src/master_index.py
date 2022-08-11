@@ -219,7 +219,7 @@ class MasterIndex:
         results = pool.map(self.get_html_link, zip(list(range(len(master_idx_10q))), 
                                                     master_idx_10q.full_submission_filename.tolist(), 
                                                     master_idx_10q.index_url.tolist(), 
-                                                    ['10-K']*len(master_idx_10q)))
+                                                    ['10-Q']*len(master_idx_10q)))
         results = pd.DataFrame(results, columns=['i','url_10q']).set_index('i')
         master_idx_10q = master_idx_10q.merge(results, how='left', left_index=True, right_index=True)
 
