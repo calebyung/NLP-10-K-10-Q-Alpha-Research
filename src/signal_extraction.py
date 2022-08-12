@@ -29,6 +29,7 @@ import multiprocessing
 class SignalExtraction():
 
     def __init__(self):
+        log(f'Initializing SignalExtraction...')
         nltk.download('punkt')
         self.config = yaml.safe_load(open('config.yml'))
         self.master_idx_10k = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx_10k.pkl')
@@ -39,13 +40,17 @@ class SignalExtraction():
 
     def load_deep_learning_models(self):
         if self.config['gpu_enabled']:
+            log(f'Loading deep learning models...')
             self.st_model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
             self.fb_tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
             self.fb_model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
             self.fb_model = self.fb_model.to("cuda:0")
+        else:
+            log(f'Skipped loading deep learning models')
 
 
     def load_master_dict(self):
+        log(f'Loading Loughran and McDonald’s Master Dictionary...')
         # load Loughran and McDonald’s Master Dictionary (2020)
         master_dict = pd.read_csv(f'{const.DATA_INPUT_PATH}/LoughranMcDonald_MasterDictionary_2020.csv')
         master_dict.columns = ['_'.join([y.lower() for y in x.split()]) for x in master_dict.columns]
@@ -63,6 +68,7 @@ class SignalExtraction():
 
 
     def build_tfidf_models(self):
+        log(f'Building global TFIDF models...')
         # sample and clean doc
         master_idx_sampled = self.master_idx_10k \
             .sort_values(['cik','filing_date']).reset_index(drop=True) \
@@ -70,17 +76,17 @@ class SignalExtraction():
 
         def download_doc(i):
             url = master_idx_sampled.iloc[i]['url_10k']
-            head = {'Host': 'www.sec.gov', 'Connection': 'close',
+            headers = {'Host': 'www.sec.gov', 'Connection': 'close',
                     'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
                     'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
                     }
-            txt = requests.get(url, headers=head).text
+            txt = requests.get(url, headers=headers).text
             txt = soup = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
             txt = clean_doc1(txt)
             item_pos = find_item_pos(txt)
             item_1 = clean_doc2(txt[item_pos.iloc[0]['item_1_pos_start'] : item_pos.iloc[0]['item_1_pos_end']])
             full = clean_doc2(txt[item_pos.iloc[0]['item_1_pos_start'] :])
-            log(f'Completed downloading doc {i}')
+            log(f'Completed downloading doc {i}') if (i>0 and i%100==0) else None
             return {'full':full, 'item_1':item_1}
         docs = {}
         for i in range(len(master_idx_sampled)):
@@ -104,6 +110,7 @@ class SignalExtraction():
 
     def load_word2vec(self):
         # download word2vec
+        log(f'Downloading word2vec...')
         for i in range(20):
             try:
                 wv = api.load('word2vec-google-news-300')
@@ -122,18 +129,21 @@ class SignalExtraction():
         # extract smaller word2vec dict
         self.tfidf_1g_wv_idx = tfidf_1g_wv_idx
         self.wv_subset = {w : wv[w] for w in tfidf_1g_wv_word}
+        log(f'Length of wv_subset: {len(list(self.wv_subset))}')
         del wv
         gc.collect()
 
     def run_preparation(self):
+        log(f'Running preparation...')
         self.load_deep_learning_models()
         self.load_master_dict()
         self.build_tfidf_models()
         self.load_word2vec()
+        log(f'Completed preparation')
 
 
     def gen_signal_10k(self, cik):
-        log(f'{cik}: Started signal generation')
+        log(f'{cik}: Extracting signal...')
         df = self.master_idx_10k.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
         docs = {}
         for i in range(len(df)):
@@ -148,7 +158,11 @@ class SignalExtraction():
             adapter = HTTPAdapter(max_retries=retry)
             session.mount('http://', adapter)
             session.mount('https://', adapter)
-            txt = session.get(url, headers={"user-agent": f"chan_tai_man_{int(float(np.random.rand(1)) * 1e7)}@gmail.com"}).text
+            headers = {'Host': 'www.sec.gov', 'Connection': 'close',
+                    'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+                    'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
+                    }
+            txt = session.get(url, headers=headers).text
 
             # clean doc, extract items
             txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
@@ -245,7 +259,11 @@ class SignalExtraction():
             adapter = HTTPAdapter(max_retries=retry)
             session.mount('http://', adapter)
             session.mount('https://', adapter)
-            txt = session.get(url, headers={"user-agent": f"chan_tai_man_{int(float(np.random.rand(1)) * 1e7)}@gmail.com"}).text
+            headers = {'Host': 'www.sec.gov', 'Connection': 'close',
+                    'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+                    'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
+                    }
+            txt = session.get(url, headers=headers).text
 
             # clean doc, extract items
             txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
