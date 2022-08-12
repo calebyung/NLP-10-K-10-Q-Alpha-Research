@@ -22,11 +22,13 @@ class TopicModelling():
         self.documents = [docs[cik]['item_1'] for cik in docs]
         self.document_ids = list(docs)
 
+
     def train_top2vec(self):
         self.model = Top2Vec(documents = self.documents, 
                             embedding_model = 'universal-sentence-encoder',
                             document_ids = self.document_ids,
                             workers = -1)
+
 
     def analyze_topics(self):
         # CIK to topic mapping
@@ -55,6 +57,7 @@ class TopicModelling():
         # save results
         self.doc_topics = doc_topics
         self.topics = topics
+
 
     def export(self):
         save_pkl(self.doc_topics, 'doc_topics.pkl')

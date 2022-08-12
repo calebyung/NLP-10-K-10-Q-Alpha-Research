@@ -143,10 +143,10 @@ class SignalExtraction():
             self.load_word2vec()
         else:
             log(f'Loading precomputed prep...')
-            self.global_tfidf_1g = os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_1g'])
-            self.global_tfidf_2g = os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_2g'])
-            self.tfidf_1g_wv_idx = os.path.join(const.DATA_INPUT_PATH, self.config['tfidf_1g_wv_idx'])
-            self.wv_subset = os.path.join(const.DATA_INPUT_PATH, self.config['wv_subset'])
+            self.global_tfidf_1g = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_1g']))
+            self.global_tfidf_2g = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_2g']))
+            self.tfidf_1g_wv_idx = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['tfidf_1g_wv_idx']))
+            self.wv_subset = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['wv_subset']))
         log(f'Completed preparation')
 
 
