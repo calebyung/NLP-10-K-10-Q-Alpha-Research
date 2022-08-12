@@ -128,8 +128,9 @@ class SignalExtraction():
 
         # extract smaller word2vec dict
         self.tfidf_1g_wv_idx = tfidf_1g_wv_idx
-        self.wv_subset = {w : wv[w] for w in tfidf_1g_wv_word}
-        log(f'Length of wv_subset: {len(list(self.wv_subset))}')
+        wv_subset = {w : wv[w] for w in tfidf_1g_wv_word}
+        self.wv_subset = np.concatenate(list(wv_subset.values())).reshape(len(wv_subset), 300)
+        log(f'Shape of wv_subset: {self.wv_subset.shape}')
         del wv
         gc.collect()
 
@@ -137,13 +138,20 @@ class SignalExtraction():
         log(f'Running preparation...')
         self.load_deep_learning_models()
         self.load_master_dict()
-        self.build_tfidf_models()
-        self.load_word2vec()
+        if self.config['load_prep_data'] == False:
+            self.build_tfidf_models()
+            self.load_word2vec()
+        else:
+            log(f'Loading precomputed prep...')
+            self.global_tfidf_1g = os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_1g'])
+            self.global_tfidf_2g = os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_2g'])
+            self.tfidf_1g_wv_idx = os.path.join(const.DATA_INPUT_PATH, self.config['tfidf_1g_wv_idx'])
+            self.wv_subset = os.path.join(const.DATA_INPUT_PATH, self.config['wv_subset'])
         log(f'Completed preparation')
 
 
     def gen_signal_10k(self, cik):
-        log(f'{cik}: Extracting signal...')
+        log(f'{cik}: Extracting 10-K signal...')
         df = self.master_idx_10k.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
         docs = {}
         for i in range(len(df)):
@@ -198,7 +206,6 @@ class SignalExtraction():
                             gen_feat_item_sentiment(docs, self.fb_tokenizer, self.fb_model),
                             gen_feat_fls_sentiment(docs, self.fb_tokenizer, self.fb_model)]
         feats = pd.concat(feat_vecs, axis=1)
-        log(f'Completed signal generation for CIK {cik}')
         return feats
 
 
@@ -215,7 +222,9 @@ class SignalExtraction():
         feats = feats.merge(self.cik_map, how='inner', on='cik')
         cols = [c for c in feats if c[:5]=='feat_']
         feats = feats[[c for c in feats if c not in cols] + cols]
+        log(f'Number of stocks with more than 1 row containing null 10-K signals:')
         display(feats.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
+        log(f'Sample of 10-K feats:')
         display(feats.head())
 
         # export
@@ -244,7 +253,7 @@ class SignalExtraction():
 
 
     def gen_signal_10q(self, cik):
-        log(f'{cik}: Started signal generation')
+        log(f'{cik}: Extracting 10-Q signal...')
         df = self.master_idx_10q.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
         docs = {}
         for i in range(len(df)):
@@ -302,7 +311,9 @@ class SignalExtraction():
         feats = feats.merge(self.cik_map, how='inner', on='cik')
         cols = [c for c in feats if c[:5]=='feat_']
         feats = feats[[c for c in feats if c not in cols] + cols]
+        log(f'Number of stocks with more than 1 row containing null 10-Q signals:')
         display(feats.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
+        log(f'Sample of 10-Q feats:')
         display(feats.head())
 
         # export
