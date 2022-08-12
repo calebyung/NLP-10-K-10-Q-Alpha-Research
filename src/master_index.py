@@ -85,11 +85,8 @@ class MasterIndex:
                 "%s-%s.tsv" % (x[0], x[1]),)
                 for x in history]
         for i, file in enumerate(tasks):
-            log(file)
+            log(f'Downloading index: {file[0]} >> {file[1]}')
             _download(file, const.DATA_OUTPUT_PATH, self.config['edgar_user_agent'])
-
-        # # download all index
-        # edgar.download_index(dest=f'{const.DATA_OUTPUT_PATH}/', since_year=self.config['edgar_index_start_year'], user_agent=self.config['edgar_user_agent'], skip_all_present_except_last=False)
 
         # combin index
         master_idx = []
@@ -141,9 +138,19 @@ class MasterIndex:
         log(f'Avg number of 10-K filing per stock: {master_idx_10k.shape[0] / master_idx_10k.cik.nunique()}')
         log(f'Avg number of 10-Q filing per stock: {master_idx_10q.shape[0] / master_idx_10q.cik.nunique()}')
         log(f'Avg number of 8-K filing per stock: {master_idx_8k.shape[0] / master_idx_8k.cik.nunique()}')
-        display(master_idx_10k.sample(5))
+        log(f'Sample of master_idx_10k:')
+        display(master_idx_10k.sample(3))
+        log(f'Distribution of number of 10-K per CIK:')
         display(master_idx_10k.groupby('cik')['full_submission_filename'].nunique().value_counts())
-        
+        log(f'Sample of master_idx_10k:')
+        display(master_idx_10q.sample(3))
+        log(f'Distribution of number of 10-Q per CIK:')
+        display(master_idx_10q.groupby('cik')['full_submission_filename'].nunique().value_counts())
+        log(f'Sample of master_idx_10k:')
+        display(master_idx_8k.sample(3))
+        log(f'Distribution of number of 8-K per CIK:')
+        display(master_idx_8k.groupby('cik')['full_submission_filename'].nunique().value_counts())
+
         # save results
         self.cik_map = cik_map
         self.master_idx_10k = master_idx_10k
@@ -175,7 +182,7 @@ class MasterIndex:
         except:
             full_url = None
         
-        log(f'[{i}] {full_url}') if i%200==0 else None
+        log(f'[{i}] Constructed URL: {full_url}') if (i%200==0 and i>0) else None
         return i, full_url
 
 
@@ -190,13 +197,13 @@ class MasterIndex:
         master_idx_10k = master_idx_10k.merge(results, how='left', left_index=True, right_index=True)
 
         # remove nulls and pdf
-        log(f'Percentage of null: {master_idx_10k["url_10k"].isnull().sum() / master_idx_10k.shape[0]}')
-        log(f'Percentage of PDF: {(master_idx_10k["url_10k"].fillna("").str.lower().str[-3:]=="pdf").sum() / master_idx_10k.shape[0]}')
+        log(f'Percentage of null (10-K): {master_idx_10k["url_10k"].isnull().sum() / master_idx_10k.shape[0]}')
+        log(f'Percentage of PDF (10-K): {(master_idx_10k["url_10k"].fillna("").str.lower().str[-3:]=="pdf").sum() / master_idx_10k.shape[0]}')
         master_idx_10k = master_idx_10k.loc[lambda x: (x.url_10k.fillna('').str.lower().str[-3:].isin(['htm','tml']))].reset_index(drop=True)
 
         # check again CIK with single doc
         ciks = master_idx_10k.groupby('cik')['filing_date'].count().loc[lambda x: x<2].index.tolist()
-        log(f'Number of CIK with single doc: {len(ciks)}')
+        log(f'Number of CIK with single doc (10-K): {len(ciks)}')
         master_idx_10k = master_idx_10k.loc[lambda x: ~x.cik.isin(ciks)].reset_index(drop=True)
 
         # assign doc_id
@@ -208,6 +215,7 @@ class MasterIndex:
         # logging
         assert master_idx_10k.doc_id.nunique()==master_idx_10k.shape[0]
         log(f'Shape of master_idx_10k: {master_idx_10k.shape}')
+        log(f'master_idx_10k')
         display(master_idx_10k.sample(5))
 
         # save results
@@ -224,13 +232,13 @@ class MasterIndex:
         master_idx_10q = master_idx_10q.merge(results, how='left', left_index=True, right_index=True)
 
         # remove nulls and pdf
-        log(f'Percentage of null: {master_idx_10q["url_10q"].isnull().sum() / master_idx_10q.shape[0]}')
-        log(f'Percentage of PDF: {(master_idx_10q["url_10q"].fillna("").str.lower().str[-3:]=="pdf").sum() / master_idx_10q.shape[0]}')
+        log(f'Percentage of null (10-Q): {master_idx_10q["url_10q"].isnull().sum() / master_idx_10q.shape[0]}')
+        log(f'Percentage of PDF (10-Q): {(master_idx_10q["url_10q"].fillna("").str.lower().str[-3:]=="pdf").sum() / master_idx_10q.shape[0]}')
         master_idx_10q = master_idx_10q.loc[lambda x: (x.url_10q.fillna('').str.lower().str[-3:].isin(['htm','tml']))].reset_index(drop=True)
 
         # check again CIK with single doc
         ciks = master_idx_10q.groupby('cik')['filing_date'].count().loc[lambda x: x<2].index.tolist()
-        log(f'Number of CIK with single doc: {len(ciks)}')
+        log(f'Number of CIK with single doc (10-Q): {len(ciks)}')
         master_idx_10q = master_idx_10q.loc[lambda x: ~x.cik.isin(ciks)].reset_index(drop=True)
 
         # assign doc_id
@@ -242,6 +250,7 @@ class MasterIndex:
         # logging
         assert master_idx_10q.doc_id.nunique()==master_idx_10q.shape[0]
         log(f'Shape of master_idx_10q: {master_idx_10q.shape}')
+        log(f'Sample of master_idx_10q:')
         display(master_idx_10q.sample(5))
 
         # save results
@@ -269,11 +278,6 @@ def _skip_header(f):
 
 
 def _url_get(url, user_agent):
-    # import urllib.request
-    # hdr = { 'User-Agent' : user_agent }
-    # req = urllib.request.Request(url, headers=hdr)
-    # content = urllib.request.urlopen(req).read()
-
     heads = {'Host': 'www.sec.gov', 'Connection': 'close',
          'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
          'User-Agent': user_agent,

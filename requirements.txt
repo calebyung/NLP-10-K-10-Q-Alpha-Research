@@ -20,7 +20,7 @@ torch
 transformers
 yfinance
 # top2vec[sentence_encoders]
-# tensorflow
-# tensorflow_hub
-# tensorflow_text
-# top2vec
+tensorflow
+tensorflow_hub
+tensorflow_text
+top2vec
