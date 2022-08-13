@@ -108,6 +108,7 @@ class SignalAnalytics:
 
 
     def analyze_feat(self, feats, ret, exret, selected_feat):
+        log(f'Analyzing signal {selected_feat}...')
         # create signal table as pivot
         signal = feats[['stock', 'date', selected_feat]] \
             .drop_duplicates() \
@@ -131,32 +132,36 @@ class SignalAnalytics:
         return metric
 
 
-# loop through all signals to generate metrics
-feat_metric = [analyze_feat(feats, ret, exret, f) for f in feat_names]
-feat_metric = pd.concat(feat_metric, axis=0).reset_index(drop=True)
+    def analyze_all_feats(self):
+        self.feat_metric = [self.analyze_feat(self.feats, self.ret, self.exret, f) for f in self.feat_names]
+        self.feat_metric = pd.concat(self.feat_metric, axis=0).reset_index(drop=True)
 
 
-# based on first round analysis, compute various weighted averages of signals
-s_list = [0, 0.4]
-k_list = [0.05, 0.10, 0.15, 0.20, -0.05, -0.10, -0.15, -0.20, 0]
-t_dict = {'minmax': MinMaxScaler(),
-          'uniform': QuantileTransformer(output_distribution='uniform', random_state=0),
-          'normal': QuantileTransformer(output_distribution='normal', random_state=0)}
+    # based on first round analysis, compute various weighted averages of signals
+    def add_weighted_avg_signals(self):
+        log(f'Calculating weighted avg signals...')
+        s_list = [0, 0.4]
+        k_list = [0.05, 0.10, 0.15, 0.20, -0.05, -0.10, -0.15, -0.20, 0]
+        t_dict = {'minmax': MinMaxScaler(),
+                'uniform': QuantileTransformer(output_distribution='uniform', random_state=0),
+                'normal': QuantileTransformer(output_distribution='normal', random_state=0)}
 
-list1 = list(itertools.product(s_list, [-0.1,-0.05, 0, 0.05, 0.1], ['normal']))
-list2 = list(itertools.product(s_list, [0,0.5,1,2,3], ['minmax','uniform']))
+        list1 = list(itertools.product(s_list, [-0.1,-0.05, 0, 0.05, 0.1], ['normal']))
+        list2 = list(itertools.product(s_list, [0,0.5,1,2,3], ['minmax','uniform']))
 
-for s, k, t in list1 + list2:
-    weights = feat_metric \
-        .loc[lambda x: (x.horizon=='12m') & (x.sharpe_ret>s) & (~x.feat.str.contains('avg')) & (~x.feat.str.contains('lgbm'))] \
-        .loc[:, ['feat','sharpe_ret']] \
-        .sort_values('sharpe_ret', ascending=False)
-    weights['imp'] = np.exp(k * weights['sharpe_ret'])
-    weights['weight'] = weights['imp'] / np.sum(weights['imp'])
-    df = feats[weights.feat.tolist()]
-    df = pd.DataFrame(t_dict[t].fit_transform(df), columns=df.columns)
-    df = df.multiply(weights.weight.tolist(), axis=1)
-    feats[f'feat_weighted_avg_s{s}_k{k}_{t}'] = df.sum(axis=1)
+        for s, k, t in list1 + list2:
+            weights = self.feat_metric \
+                .loc[lambda x: (x.horizon=='12m') & (x.sharpe_ret>s) & (~x.feat.str.contains('avg')) & (~x.feat.str.contains('lgbm'))] \
+                .loc[:, ['feat','sharpe_ret']] \
+                .sort_values('sharpe_ret', ascending=False)
+            weights['imp'] = np.exp(k * weights['sharpe_ret'])
+            weights['weight'] = weights['imp'] / np.sum(weights['imp'])
+            df = self.feats[weights.feat.tolist()]
+            df = pd.DataFrame(t_dict[t].fit_transform(df), columns=df.columns)
+            df = df.multiply(weights.weight.tolist(), axis=1)
+            self.feats[f'feat_weighted_avg_s{s}_k{k}_{t}'] = df.sum(axis=1)
+        log(f'Sample of weighted avg signals:')
+        display(self.feats[[c for c in self.feats.columns if 'avg' in c]])
 
 # summary DQ
 feat_names = [c for c in feats.columns if 'feat' in c]

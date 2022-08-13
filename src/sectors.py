@@ -1,5 +1,5 @@
 # import project modules
-from src.util import *
+from src.util import log, load_pkl, save_pkl, new_plot 
 import src.constants as const
 
 # import libraries
@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from IPython.display import display
 from top2vec import Top2Vec
+from matplotlib import pyplot as plt
 
 
 class SectorModelling:
