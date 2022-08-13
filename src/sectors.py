@@ -7,6 +7,7 @@ import os
 import numpy as np
 import pandas as pd
 from IPython.display import display
+!pip install numpy --upgrade
 from top2vec import Top2Vec
 
 
