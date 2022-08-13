@@ -30,10 +30,10 @@ class SignalExtraction:
         log(f'Initializing SignalExtraction...')
         nltk.download('punkt')
         self.config = yaml.safe_load(open('config.yml'))
-        self.master_idx_10k = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx_10k.pkl')
-        self.master_idx_10q = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx_10q.pkl')
-        self.master_idx_8k = load_pkl(f'{const.DATA_OUTPUT_PATH}/master_idx_8k.pkl')
-        self.cik_map = load_pkl(f'{const.DATA_OUTPUT_PATH}/cik_map.pkl')
+        self.master_idx_10k = load_pkl(f'{const.INTERIM_DATA_PATH}/master_idx_10k.pkl')
+        self.master_idx_10q = load_pkl(f'{const.INTERIM_DATA_PATH}/master_idx_10q.pkl')
+        self.master_idx_8k = load_pkl(f'{const.INTERIM_DATA_PATH}/master_idx_8k.pkl')
+        self.cik_map = load_pkl(f'{const.INTERIM_DATA_PATH}/cik_map.pkl')
 
 
     def load_deep_learning_models(self):
@@ -50,7 +50,7 @@ class SignalExtraction:
     def load_master_dict(self):
         log(f'Loading Loughran and McDonald’s Master Dictionary...')
         # load Loughran and McDonald’s Master Dictionary (2020)
-        master_dict = pd.read_csv(f'{const.DATA_INPUT_PATH}/LoughranMcDonald_MasterDictionary_2020.csv')
+        master_dict = pd.read_csv(f'{const.INPUT_DATA_PATH}/LoughranMcDonald_MasterDictionary_2020.csv')
         master_dict.columns = ['_'.join([y.lower() for y in x.split()]) for x in master_dict.columns]
         master_dict.word = master_dict.word.str.lower()
 
@@ -99,7 +99,7 @@ class SignalExtraction:
         log(f'Vocab size of TFIDF (2-gram): {len(self.global_tfidf_2g.vocabulary_)}')
 
         # save sampled docs for Top2Vec
-        save_pkl(docs, f'{const.DATA_OUTPUT_PATH}/sampled_docs.pkl')
+        save_pkl(docs, f'{const.INTERIM_DATA_PATH}/sampled_docs.pkl')
         
         # release memory
         del doc_list, docs
@@ -142,12 +142,12 @@ class SignalExtraction:
             self.load_word2vec()
         else:
             log(f'Loading precomputed prep...')
-            self.global_tfidf_1g = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_1g']))
-            self.global_tfidf_2g = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_2g']))
-            self.tfidf_1g_wv_idx = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['tfidf_1g_wv_idx']))
-            self.wv_subset = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['wv_subset']))
-            load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['sampled_docs']))
-            shutil.copyfile(os.path.join(const.DATA_INPUT_PATH, self.config['sampled_docs']), os.path.join(const.DATA_OUTPUT_PATH, 'sampled_docs.pkl'))
+            self.global_tfidf_1g = load_pkl(os.path.join(const.INTERIM_DATA_PATH, self.config['global_tfidf_1g']))
+            self.global_tfidf_2g = load_pkl(os.path.join(const.INTERIM_DATA_PATH, self.config['global_tfidf_2g']))
+            self.tfidf_1g_wv_idx = load_pkl(os.path.join(const.INTERIM_DATA_PATH, self.config['tfidf_1g_wv_idx']))
+            self.wv_subset = load_pkl(os.path.join(const.INTERIM_DATA_PATH, self.config['wv_subset']))
+            load_pkl(os.path.join(const.INTERIM_DATA_PATH, self.config['sampled_docs']))
+            # shutil.copyfile(os.path.join(const.INPUT_DATA_PATH, self.config['sampled_docs']), os.path.join(const.OUTPUT_DATA_PATH, 'sampled_docs.pkl'))
         log(f'Completed preparation')
 
 
@@ -230,7 +230,7 @@ class SignalExtraction:
 
         # export
         self.feats_10k = feats
-        save_pkl(feats, os.path.join(const.DATA_OUTPUT_PATH, 'feats_10k.pkl'))
+        save_pkl(feats, os.path.join(const.INTERIM_DATA_PATH, 'feats_10k.pkl'))
 
 
     def get_10q_doc_pairs(self, docs):
@@ -296,7 +296,6 @@ class SignalExtraction:
                         gen_feat_word2vec_10q(docs, doc_pairs, self.global_tfidf_1g, self.tfidf_1g_wv_idx, self.wv_subset),
                         gen_feat_lm_postive_10q(docs, doc_pairs, self.positive_word_list, self.negative_word_list)]
         feats = pd.concat(feat_vecs, axis=1)
-        log(f'Completed signal generation for CIK {cik}')
         return feats
 
 
@@ -320,7 +319,7 @@ class SignalExtraction:
 
         # export
         self.feats_10q = feats
-        save_pkl(feats, os.path.join(const.DATA_OUTPUT_PATH, 'feats_10q.pkl'))
+        save_pkl(feats, os.path.join(const.INTERIM_DATA_PATH, 'feats_10q.pkl'))
 
 
     def gen_8k_feats(self):
@@ -344,6 +343,6 @@ class SignalExtraction:
 
         # export
         self.feats_8k = feats_8k
-        save_pkl(feats_8k, os.path.join(const.DATA_OUTPUT_PATH, 'feats_8k.pkl'))
+        save_pkl(feats_8k, os.path.join(const.INTERIM_DATA_PATH, 'feats_8k.pkl'))
 
 

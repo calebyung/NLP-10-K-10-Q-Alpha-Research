@@ -40,7 +40,7 @@ class MasterIndex:
         cik_map = pd.concat([cik_map, curr_cons.loc[lambda x: ~x.stock.isin(cik_map.stock)]], axis=0).drop_duplicates()
 
         # load full stock list based on returns table
-        ret = load_pkl(f'{const.DATA_OUTPUT_PATH}/ret.pkl')
+        ret = load_pkl(f'{const.INTERIM_DATA_PATH}/ret.pkl')
 
         # derive EDGAR filing start (ret start date - 400 days) and end date
         df = []
@@ -55,7 +55,7 @@ class MasterIndex:
         assert stock_map.stock.nunique()==stock_map.shape[0]
 
         # import manual mapping
-        manual_cik_map = pd.read_csv(f'{const.DATA_INPUT_PATH}/missing_stock_map.csv') \
+        manual_cik_map = pd.read_csv(f'{const.INPUT_DATA_PATH}/missing_stock_map.csv') \
             .assign(cik = lambda x: x.cik.astype(str).str.zfill(10)) \
             .rename(columns={'cik':'missing_cik'}) \
             .loc[:,['stock','missing_cik']]
@@ -86,15 +86,15 @@ class MasterIndex:
                 for x in history]
         for i, file in enumerate(tasks):
             log(f'Downloading index: {file[0]} >> {file[1]}')
-            _download(file, const.DATA_OUTPUT_PATH, self.config['edgar_user_agent'])
+            _download(file, const.INTERIM_DATA_PATH, self.config['edgar_user_agent'])
 
         # combin index
         master_idx = []
-        for f in os.listdir(f'{const.DATA_OUTPUT_PATH}/'):
+        for f in os.listdir(f'{const.INTERIM_DATA_PATH}/'):
             if '.tsv' in f:
-                df = pd.read_csv(f'{const.DATA_OUTPUT_PATH}/{f}', sep='|', names=['cik','entity','filing_type','filing_date','full_submission_filename','index_url'])
+                df = pd.read_csv(f'{const.INTERIM_DATA_PATH}/{f}', sep='|', names=['cik','entity','filing_type','filing_date','full_submission_filename','index_url'])
                 master_idx.append(df)
-                os.remove(f'{const.DATA_OUTPUT_PATH}/{f}')
+                os.remove(f'{const.INTERIM_DATA_PATH}/{f}')
         master_idx = pd.concat(master_idx)
 
         # cleaning and filter with only filings required
@@ -258,11 +258,11 @@ class MasterIndex:
 
 
     def export(self):
-        save_pkl(self.stock_map, f'{const.DATA_OUTPUT_PATH}/stock_map.pkl')
-        save_pkl(self.cik_map, f'{const.DATA_OUTPUT_PATH}/cik_map.pkl')
-        save_pkl(self.master_idx_10k, f'{const.DATA_OUTPUT_PATH}/master_idx_10k.pkl')
-        save_pkl(self.master_idx_10q, f'{const.DATA_OUTPUT_PATH}/master_idx_10q.pkl')
-        save_pkl(self.master_idx_8k, f'{const.DATA_OUTPUT_PATH}/master_idx_8k.pkl')
+        save_pkl(self.stock_map, f'{const.INTERIM_DATA_PATH}/stock_map.pkl')
+        save_pkl(self.cik_map, f'{const.INTERIM_DATA_PATH}/cik_map.pkl')
+        save_pkl(self.master_idx_10k, f'{const.INTERIM_DATA_PATH}/master_idx_10k.pkl')
+        save_pkl(self.master_idx_10q, f'{const.INTERIM_DATA_PATH}/master_idx_10q.pkl')
+        save_pkl(self.master_idx_8k, f'{const.INTERIM_DATA_PATH}/master_idx_8k.pkl')
 
 
 

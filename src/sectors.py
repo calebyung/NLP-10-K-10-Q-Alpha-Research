@@ -19,7 +19,7 @@ class SectorModelling:
     # load documents (Item 1 - Business)
     def load_docs(self):
         log(f'Loading input docs for top2vec...')
-        docs = load_pkl(f'{const.DATA_OUTPUT_PATH}/sampled_docs.pkl')
+        docs = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'sampled_docs.pkl'))
         self.documents = [docs[cik]['item_1'] for cik in docs]
         self.document_ids = list(docs)
 

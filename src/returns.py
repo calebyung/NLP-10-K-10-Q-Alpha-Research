@@ -23,7 +23,7 @@ class ReturnData:
         self.config = yaml.safe_load(open('config.yml'))
         self.START_DATETIME = datetime.strptime(const.DOWNLOAD_RETURN_START_DATE, '%Y-%m-%d')
         quandl.ApiConfig.api_key = self.config['quandl_key']
-        self.hist_cons = load_pkl(f'{const.DATA_OUTPUT_PATH}/hist_cons.pkl')
+        self.hist_cons = load_pkl(f'{const.INTERIM_DATA_PATH}/hist_cons.pkl')
         return
 
     # Use Quandl WIKI API to get all historical price (only up to 27 Mar 2018)
@@ -418,10 +418,10 @@ class ReturnData:
         self.betas = betas
 
     def export(self):
-        save_pkl(self.ret, f'{const.DATA_OUTPUT_PATH}/ret.pkl')
-        save_pkl(self.exret, f'{const.DATA_OUTPUT_PATH}/exret.pkl')
-        save_pkl(self.spy, f'{const.DATA_OUTPUT_PATH}/spy.pkl')
-        save_pkl(self.betas, f'{const.DATA_OUTPUT_PATH}/betas.pkl')
+        save_pkl(self.ret, f'{const.INTERIM_DATA_PATH}/ret.pkl')
+        save_pkl(self.exret, f'{const.INTERIM_DATA_PATH}/exret.pkl')
+        save_pkl(self.spy, f'{const.INTERIM_DATA_PATH}/spy.pkl')
+        save_pkl(self.betas, f'{const.INTERIM_DATA_PATH}/betas.pkl')
 
 
 
