@@ -65,14 +65,14 @@ class SignalAnalytics:
         log(f'Shape of 8-K feats: {feats_8k.shape}')
 
         # load LTR signal
-        feats_lgbm_ltr = load_pkl(f'../input/hkml-lightgbm-ltr/pred_val_out').rename(columns={0:'feat_lgbm_ltr_12m'})
-        log(f'Shape of LGBM Learning-to-Rank feats: {feats_lgbm_ltr.shape}')
+        # feats_lgbm_ltr = load_pkl(f'../input/hkml-lightgbm-ltr/pred_val_out').rename(columns={0:'feat_lgbm_ltr_12m'})
+        # log(f'Shape of LGBM Learning-to-Rank feats: {feats_lgbm_ltr.shape}')
 
         # combine all signals into single df
+            # .merge(feats_lgbm_ltr, how='outer', on=['stock','date']) \
         self.feats = feats_10k \
             .merge(feats_10q, how='outer', on=['stock','date']) \
             .merge(feats_8k, how='outer', on=['stock','date']) \
-            .merge(feats_lgbm_ltr, how='outer', on=['stock','date']) \
             .sort_values(['stock','date']) \
             .groupby('stock') \
             .apply(lambda x: x.ffill()) \
