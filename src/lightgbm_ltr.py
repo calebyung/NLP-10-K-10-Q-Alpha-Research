@@ -5,39 +5,13 @@ import src.constants as const
 
 # import libraries
 import os
-from os.path import isfile, isdir, join
 import numpy as np
 import pandas as pd
-from datetime import datetime, date
-from dateutil.relativedelta import relativedelta
-from bs4 import BeautifulSoup
-import re
 from IPython.display import display
-from zipfile import ZipFile
-import pickle
-import unicodedata
-import pytz
-from joblib import Parallel, delayed
-import shutil
-import difflib
-import random
 import math
-from shutil import copyfile
-import itertools
-import time
-
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
-from sklearn.decomposition import PCA
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import ndcg_score
-
 import lightgbm as lgbm
 import optuna
-from optuna import Trial, visualization
-
-import matplotlib as mpl
 from matplotlib import pyplot as plt
 
 
