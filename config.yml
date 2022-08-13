@@ -36,6 +36,7 @@ global_tfidf_1g: 'global_tfidf_1g'
 global_tfidf_2g: 'global_tfidf_2g'
 tfidf_1g_wv_idx: 'tfidf_1g_wv_idx'
 wv_subset: 'wv_subset'
+sampled_docs: 'sampled_docs.pkl'
 
 
 

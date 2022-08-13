@@ -9,14 +9,11 @@ from src.signal_10q_def_func import *
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
-import re
 from IPython.display import display
-import unicodedata
 from joblib import Parallel, delayed
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-import math
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -24,6 +21,7 @@ import nltk
 from gensim import downloader as api
 import gc
 import multiprocessing
+import shutil
 
 
 class SignalExtraction():
@@ -134,6 +132,7 @@ class SignalExtraction():
         del wv
         gc.collect()
 
+
     def run_preparation(self):
         log(f'Running preparation...')
         self.load_deep_learning_models()
@@ -147,6 +146,8 @@ class SignalExtraction():
             self.global_tfidf_2g = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['global_tfidf_2g']))
             self.tfidf_1g_wv_idx = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['tfidf_1g_wv_idx']))
             self.wv_subset = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['wv_subset']))
+            load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['sampled_docs']))
+            shutil.copy_file(os.path.join(const.DATA_INPUT_PATH, self.config['sampled_docs']), os.path.join(const.DATA_OUTPUT_PATH, 'sampled_docs.pkl'))
         log(f'Completed preparation')
 
 
@@ -228,7 +229,8 @@ class SignalExtraction():
         display(feats.head())
 
         # export
-        save_pkl(feats, 'feats_10k.pkl')
+        self.feats_10k = feats
+        save_pkl(feats, os.path.join(const.DATA_OUTPUT_PATH, 'feats_10k.pkl'))
 
 
     def get_10q_doc_pairs(self, docs):
@@ -317,7 +319,8 @@ class SignalExtraction():
         display(feats.head())
 
         # export
-        save_pkl(feats, 'feats_10q.pkl')
+        self.feats_10q = feats
+        save_pkl(feats, os.path.join(const.DATA_OUTPUT_PATH, 'feats_10q.pkl'))
 
 
     def gen_8k_feats(self):
@@ -338,5 +341,9 @@ class SignalExtraction():
                 .dropna()
             feats_8k.append(df)
         feats_8k = pd.concat(feats_8k).reset_index(drop=True)
+
+        # export
+        self.feats_8k = feats_8k
+        save_pkl(feats_8k, os.path.join(const.DATA_OUTPUT_PATH, 'feats_8k.pkl'))
 
 
