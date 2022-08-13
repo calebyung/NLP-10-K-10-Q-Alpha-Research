@@ -10,27 +10,31 @@ from IPython.display import display
 from top2vec import Top2Vec
 
 
-class TopicModelling():
+class SectorModelling():
     def __init__(self):
-        log(f'Initializing TopicModelling...')
+        log(f'Initializing SectorModelling...')
         self.config = yaml.safe_load(open('config.yml'))
 
 
     # load documents (Item 1 - Business)
     def load_docs(self):
+        log(f'Loading input docs for top2vec...')
         docs = load_pkl(f'{const.DATA_OUTPUT_PATH}/sampled_docs.pkl')
         self.documents = [docs[cik]['item_1'] for cik in docs]
         self.document_ids = list(docs)
 
 
     def train_top2vec(self):
+        log(f'Training top2vec...')
         self.model = Top2Vec(documents = self.documents, 
                             embedding_model = 'universal-sentence-encoder',
                             document_ids = self.document_ids,
                             workers = -1)
+        log(f'Training of top2vec completed')
 
 
     def analyze_topics(self):
+        log(f'Analyzing topic modelling results...')
         # CIK to topic mapping
         doc_topics_ = self.model.get_documents_topics(doc_ids=self.document_ids)
         doc_topics = pd.DataFrame({'cik':self.document_ids, 'topic':doc_topics_[0], 'topic_words':[', '.join(list(x)) for x in list(doc_topics_[2][:,:10])]})
@@ -60,6 +64,7 @@ class TopicModelling():
 
 
     def export(self):
+        log(f'Exporting topic modelling results...')
         save_pkl(self.doc_topics, 'doc_topics.pkl')
         save_pkl(self.topics, 'topics.pkl')
 

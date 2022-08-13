@@ -34,29 +34,8 @@ from matplotlib import pyplot as plt
 
 
 
-# function to remove any rows/columns with all NaN
-def df_drop_na(df):
-    df = df.loc[lambda x: x.notnull().sum(axis=1) > 0]
-    df = df[df.notnull().sum(axis=0).loc[lambda x: x>0].index.tolist()]
-    return df
 
-def align_index(dfs):
-    for i in range(len(dfs)):
-        if i==0:
-            idx, col = dfs[i].index, dfs[i].columns
-        else:
-            idx, col = idx & dfs[i].index, col & dfs[i].columns
-    idx, col = idx.sort_values().tolist(), col.sort_values().tolist()
-    new_dfs = tuple([df.reindex(index=idx, columns=col) for df in list(dfs)])
-    return new_dfs
-
-
-# params
-params = dict()
-params['bt_start_date'] = '2014-01-01' # bt - back testing
-params['bt_end_date'] = '2018-03-27'
-params['seed'] = 0
-horizons = {'6m':21*6, '9m':21*9, '12m':21*12}
+class 
 
 
 # load returns
