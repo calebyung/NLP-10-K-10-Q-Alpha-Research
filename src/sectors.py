@@ -22,6 +22,11 @@ class SectorModelling:
         docs = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'sampled_docs.pkl'))
         self.documents = [docs[cik]['item_1'] for cik in docs]
         self.document_ids = list(docs)
+        log(f'Loading number of docs: {len(self.document_ids)}')
+        new_plot()
+        pd.Series([len(x) for x in self.documents]).hist(bins=30)
+        plt.title('Distriburion of length of Item 1 - Business')
+        plt.close()
 
 
     def train_top2vec(self):
