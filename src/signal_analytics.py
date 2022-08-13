@@ -4,32 +4,11 @@ import src.constants as const
 
 # import libraries
 import os
-from os.path import isfile, isdir, join
 import numpy as np
 import pandas as pd
-from datetime import datetime, date
-from dateutil.relativedelta import relativedelta
-from bs4 import BeautifulSoup
-import re
 from IPython.display import display
-from zipfile import ZipFile
-import pickle
-import pytz
-from joblib import Parallel, delayed
-import shutil
-import difflib
-import random
-import math
-from shutil import copyfile
 import itertools
-
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
-from sklearn.decomposition import PCA
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import QuantileTransformer, MinMaxScaler, StandardScaler
-
-import matplotlib as mpl
 from matplotlib import pyplot as plt
 
 
@@ -132,7 +111,7 @@ class SignalAnalytics:
         return metric
 
 
-    def analyze_all_feats(self):
+    def analyze_all_basic_feats(self):
         self.feat_metric = [self.analyze_feat(self.feats, self.ret, self.exret, f) for f in self.feat_names]
         self.feat_metric = pd.concat(self.feat_metric, axis=0).reset_index(drop=True)
 
@@ -163,33 +142,34 @@ class SignalAnalytics:
         log(f'Sample of weighted avg signals:')
         display(self.feats[[c for c in self.feats.columns if 'avg' in c]])
 
-# summary DQ
-feat_names = [c for c in feats.columns if 'feat' in c]
-log(f'Shape of combined feats: {feats.shape}')
-display(feats.head())
-
-# output combined signal
-display(feats[feat_names].sum())
-save_pkl(feats, 'feats')
 
 
-# loop through all signals to generate metrics
-feat_avg_names = [c for c in feats.columns if 'feat_weighted_avg' in c]
-feat_metric_avg = [analyze_feat(feats, ret, exret, f) for f in feat_avg_names]
-feat_metric_avg = pd.concat(feat_metric_avg, axis=0).reset_index(drop=True)
-feat_metric = pd.concat([feat_metric, feat_metric_avg], axis=0).reset_index(drop=True)
-feat_metric.to_csv('feat_metric.csv', index=False)
+    def analyze_all_avg_feats(self):
+        feat_avg_names = [c for c in self.feats.columns if 'feat_weighted_avg' in c]
+        feat_metric_avg = [self.analyze_feat(self.feats, self.ret, self.exret, f) for f in feat_avg_names]
+        feat_metric_avg = pd.concat(feat_metric_avg, axis=0).reset_index(drop=True)
+        self.feat_metric = pd.concat([self.feat_metric, feat_metric_avg], axis=0).reset_index(drop=True)
+        
+
+    def display_all_results(self):
+        # display all signal metric output
+        feat_names = [c for c in self.feats.columns if 'feat' in c]
+        for feat in feat_names:
+            display(self.feat_metric.loc[lambda x: x.feat==feat])
+
+        # display all feats
+        log(f'Shape of combined feats: {self.feats.shape}')
+        log(f'Sample of combined feats:')
+        display(self.feats.head())
+
+        # signal correlation plot
+        corr = self.feats[feat_names].corr()
+        corr.style.background_gradient(cmap='coolwarm')
 
 
-# display all signal metric output
-feat_names = [c for c in feats.columns if 'feat' in c]
-for feat in feat_names:
-    display(feat_metric.loc[lambda x: x.feat==feat])
-
-
-# signal correlation plot
-corr = feats[feat_names].corr()
-corr.style.background_gradient(cmap='coolwarm')
+    def export(self):
+        save_pkl(self.feats, os.path.join(const.OUTPUT_DATA_PATH, 'feats.pkl'))
+        self.feat_metric.to_csv(os.path.join(const.OUTPUT_DATA_PATH, 'feat_metric.csv'), index=False)
 
 
 def get_portfolio_ret(signal, f_ret, n_day, div_vol=False):
