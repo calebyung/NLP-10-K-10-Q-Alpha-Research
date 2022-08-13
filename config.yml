@@ -41,7 +41,18 @@ sampled_docs: 'sampled_docs.pkl'
 bt_start_date: '2014-01-01'
 bt_end_date: '2018-03-27'
 seed: 0
-bt_horizons: {'6m':21*6, '9m':21*9, '12m':21*12}
+bt_horizons: {'6m':126, '9m':189, '12m':252}
+
+ltr_h: '12m'
+n_day_sample: 4
+hp_opt_hrs: 0.02
+n_day_trn: 365
+n_day_val: 30
+n_day_final_predict: 10000
+run_hp_tune: True
+best_params: {'sample_weight_p': 1.3887048885948596, 'max_depth': 10, 'num_leaves': 54, 'learning_rate': 0.1537015325324695, 'objective': 'lambdarank', 'min_child_weight': 3.3478798601563096, 'min_child_samples': 16, 'subsample': 0.5725379109999287, 'subsample_freq': 8, 'reg_alpha': 0.5445575343281451, 'reg_lambda': 0.21693106623962125}
+
+
 
 
 

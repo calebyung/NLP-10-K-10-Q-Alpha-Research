@@ -341,8 +341,27 @@ class SignalExtraction:
             feats_8k.append(df)
         feats_8k = pd.concat(feats_8k).reset_index(drop=True)
 
+        # calculate Year-on-Year change
+        ret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'ret.csv'))
+        feats_8k = feats_8k \
+            .merge(self.cik_map, how='inner', on='cik') \
+            .rename(columns={'filing_date':'date'}) \
+            .loc[:,['stock','date','feat_cnt_8k']] \
+            .sort_values(['stock','date']) \
+            .assign(feat_cnt_8k_prev = lambda x: x.groupby('stock').feat_cnt_8k.shift(365)) \
+            .assign(feat_cnt_8k_diff = lambda x: x.feat_cnt_8k - x.feat_cnt_8k_prev) \
+            .assign(feat_cnt_8k = lambda x: x.feat_cnt_8k * -1,
+                    feat_cnt_8k_diff = lambda x: x.feat_cnt_8k_diff * -1) \
+            .loc[lambda x: x.date.isin(ret.index), ['stock','date','feat_cnt_8k','feat_cnt_8k_diff']] \
+            .dropna()
+
         # export
+        log(f'Shape of 8-K feats: {feats_8k.shape}')
+        log(f'Sample of feats_8k:')
+        display(feats_8k.sample(5))
         self.feats_8k = feats_8k
         save_pkl(feats_8k, os.path.join(const.INTERIM_DATA_PATH, 'feats_8k.pkl'))
+
+
 
 
