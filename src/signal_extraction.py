@@ -24,7 +24,7 @@ import multiprocessing
 import shutil
 
 
-class SignalExtraction():
+class SignalExtraction:
 
     def __init__(self):
         log(f'Initializing SignalExtraction...')

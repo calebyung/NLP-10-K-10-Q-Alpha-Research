@@ -10,7 +10,7 @@ from IPython.display import display
 from top2vec import Top2Vec
 
 
-class SectorModelling():
+class SectorModelling:
     def __init__(self):
         log(f'Initializing SectorModelling...')
         self.config = yaml.safe_load(open('config.yml'))
