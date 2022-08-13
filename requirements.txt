@@ -24,3 +24,4 @@ tensorflow
 tensorflow_hub
 tensorflow_text
 top2vec
+cvxpy

@@ -147,7 +147,7 @@ class SignalExtraction():
             self.tfidf_1g_wv_idx = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['tfidf_1g_wv_idx']))
             self.wv_subset = load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['wv_subset']))
             load_pkl(os.path.join(const.DATA_INPUT_PATH, self.config['sampled_docs']))
-            shutil.copy_file(os.path.join(const.DATA_INPUT_PATH, self.config['sampled_docs']), os.path.join(const.DATA_OUTPUT_PATH, 'sampled_docs.pkl'))
+            shutil.copyfile(os.path.join(const.DATA_INPUT_PATH, self.config['sampled_docs']), os.path.join(const.DATA_OUTPUT_PATH, 'sampled_docs.pkl'))
         log(f'Completed preparation')
 
 
