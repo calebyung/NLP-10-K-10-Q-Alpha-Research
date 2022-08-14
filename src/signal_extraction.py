@@ -219,8 +219,8 @@ class SignalExtraction:
         # generate signal per CIK
         # pool = multiprocessing.Pool(processes=self.config['n_jobs'])
         # feats = pool.map(self.gen_signal_10k, self.master_idx_10k.cik.unique().tolist())
-        feats = [self.gen_signal_10k(x) for x in self.master_idx_10k.cik.unique().tolist()]
-        feats = pd.concat([x for x in feats if x!=None]).sort_values('doc_id').reset_index(drop=True)
+        self.feats = [self.gen_signal_10k(x) for x in self.master_idx_10k.cik.unique().tolist()]
+        self.feats = pd.concat([x for x in self.feats if x!=None]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
         df = self.master_idx_10k[['doc_id','cik','entity','filing_date']].drop_duplicates()
@@ -312,8 +312,8 @@ class SignalExtraction:
         # generate signal per CIK
         # pool = multiprocessing.Pool(processes=self.config['n_jobs'])
         # feats = pool.map(self.gen_signal_10q, self.master_idx_10q.cik.unique().tolist())
-        feats = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
-        feats = pd.concat([x for x in feats if x!=None]).sort_values('doc_id').reset_index(drop=True)
+        self.feats = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
+        self.feats = pd.concat([x for x in self.feats if x!=None]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
         df = self.master_idx_10q[['doc_id','cik','entity','filing_date']].drop_duplicates()
