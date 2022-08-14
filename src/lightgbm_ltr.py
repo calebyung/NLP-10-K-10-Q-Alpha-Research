@@ -215,7 +215,7 @@ class LTRModel:
     def optimize_hp(self):
         # get sampled dates for CV
         s = pd.Series(self.data.date.unique()) \
-            .loc[lambda x: x.between(x.min() + np.timedelta64(self.condif['n_day_trn'] + self.n_day_calendar + self.condif['n_day_val'], 'D'), self.condif['bt_start_date'])] \
+            .loc[lambda x: x.between(x.min() + np.timedelta64(self.config['n_day_trn'] + self.n_day_calendar + self.config['n_day_val'], 'D'), self.config['bt_start_date'])] \
             .tolist()
         self.sampled_dates = sorted(s[::len(s)//self.config['n_day_sample']])
         log(f'Sampled dates:')
