@@ -153,60 +153,64 @@ class SignalExtraction:
 
     def gen_signal_10k(self, cik):
         log(f'{cik}: Extracting 10-K signal...')
-        df = self.master_idx_10k.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
-        docs = {}
-        for i in range(len(df)):
-            
-            # load 10-K text from EDGAR html url
-            url = df.iloc[i]['url_10k']
-            doc_id = df.iloc[i]['doc_id']
-            
-            # url request
-            session = requests.Session()
-            retry = Retry(connect=self.config['retry_connect'], backoff_factor=self.config['retry_backoff_factor'])
-            adapter = HTTPAdapter(max_retries=retry)
-            session.mount('http://', adapter)
-            session.mount('https://', adapter)
-            headers = {'Host': 'www.sec.gov', 'Connection': 'close',
-                    'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
-                    'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
-                    }
-            txt = session.get(url, headers=headers).text
+        try:
+            df = self.master_idx_10k.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
+            docs = {}
+            for i in range(len(df)):
+                
+                # load 10-K text from EDGAR html url
+                url = df.iloc[i]['url_10k']
+                doc_id = df.iloc[i]['doc_id']
+                
+                # url request
+                session = requests.Session()
+                retry = Retry(connect=self.config['retry_connect'], backoff_factor=self.config['retry_backoff_factor'])
+                adapter = HTTPAdapter(max_retries=retry)
+                session.mount('http://', adapter)
+                session.mount('https://', adapter)
+                headers = {'Host': 'www.sec.gov', 'Connection': 'close',
+                        'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+                        'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
+                        }
+                txt = session.get(url, headers=headers).text
 
-            # clean doc, extract items
-            txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
-            txt = clean_doc1(txt)
-            item_pos = find_item_pos(txt)
-            doc_dict = {}
-            doc_dict['full'] = txt[item_pos.iloc[0]['item_1_pos_start'] :]
-            item_ptrn1 = get_item_ptrn1()
-            for item in item_ptrn1:
-                doc_dict[item] = txt[item_pos.iloc[0][f'{item}_pos_start'] : item_pos.iloc[0][f'{item}_pos_end']]
-            for x in doc_dict:
-                doc_dict[x] = clean_doc2(doc_dict[x])
-            docs[doc_id] = doc_dict
-            
-        # generate signal
-        feat_vecs = [pd.Series(list(docs.keys())).rename('doc_id')]
-        feat_vecs += [gen_feat_ch_full_len(docs),
-                        gen_feat_ch_item_1a_len(docs),
-                        gen_feat_ch_item_1b_len(docs),
-                        gen_feat_ch_item_3_len(docs),
-                        gen_feat_full_cos_1gram(docs, self.global_tfidf_1g),
-                        gen_feat_full_cos_2gram(docs, self.global_tfidf_2g),
-                        gen_feat_full_jac_1gram(docs),
-                        gen_feat_full_jac_2gram(docs),
-                        gen_feat_item_1a_lev(docs),
-                        gen_feat_item_7_lev(docs),
-                        gen_feat_lm_postive(docs, self.positive_word_list, self.negative_word_list),
-                        gen_feat_lm_uncertainty(docs, self.uncertainty_word_list),
-                        gen_feat_lm_litigious(docs, self.litigious_word_list),
-                        gen_feat_word2vec(docs, self.global_tfidf_1g, self.tfidf_1g_wv_idx, self.wv_subset)]
-        if self.config['gpu_enabled']:
-            feat_vecs += [gen_feat_sen_enc(docs, self.st_model),
-                            gen_feat_item_sentiment(docs, self.fb_tokenizer, self.fb_model),
-                            gen_feat_fls_sentiment(docs, self.fb_tokenizer, self.fb_model)]
-        feats = pd.concat(feat_vecs, axis=1)
+                # clean doc, extract items
+                txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
+                txt = clean_doc1(txt)
+                item_pos = find_item_pos(txt)
+                doc_dict = {}
+                doc_dict['full'] = txt[item_pos.iloc[0]['item_1_pos_start'] :]
+                item_ptrn1 = get_item_ptrn1()
+                for item in item_ptrn1:
+                    doc_dict[item] = txt[item_pos.iloc[0][f'{item}_pos_start'] : item_pos.iloc[0][f'{item}_pos_end']]
+                for x in doc_dict:
+                    doc_dict[x] = clean_doc2(doc_dict[x])
+                docs[doc_id] = doc_dict
+                
+            # generate signal
+            feat_vecs = [pd.Series(list(docs.keys())).rename('doc_id')]
+            feat_vecs += [gen_feat_ch_full_len(docs),
+                            gen_feat_ch_item_1a_len(docs),
+                            gen_feat_ch_item_1b_len(docs),
+                            gen_feat_ch_item_3_len(docs),
+                            gen_feat_full_cos_1gram(docs, self.global_tfidf_1g),
+                            gen_feat_full_cos_2gram(docs, self.global_tfidf_2g),
+                            gen_feat_full_jac_1gram(docs),
+                            gen_feat_full_jac_2gram(docs),
+                            gen_feat_item_1a_lev(docs),
+                            gen_feat_item_7_lev(docs),
+                            gen_feat_lm_postive(docs, self.positive_word_list, self.negative_word_list),
+                            gen_feat_lm_uncertainty(docs, self.uncertainty_word_list),
+                            gen_feat_lm_litigious(docs, self.litigious_word_list),
+                            gen_feat_word2vec(docs, self.global_tfidf_1g, self.tfidf_1g_wv_idx, self.wv_subset)]
+            if self.config['gpu_enabled']:
+                feat_vecs += [gen_feat_sen_enc(docs, self.st_model),
+                                gen_feat_item_sentiment(docs, self.fb_tokenizer, self.fb_model),
+                                gen_feat_fls_sentiment(docs, self.fb_tokenizer, self.fb_model)]
+            feats = pd.concat(feat_vecs, axis=1)
+        except:
+            feats = None
+            log(f'{cik}: Error when extracting 10-K signal')
         return feats
 
 
@@ -215,7 +219,7 @@ class SignalExtraction:
         pool = multiprocessing.Pool(processes=self.config['n_jobs'])
         feats = pool.map(self.gen_signal_10k, self.master_idx_10k.cik.unique().tolist())
         # feats = [self.gen_signal_10k(x) for x in self.master_idx_10k.cik.unique().tolist()]
-        feats = pd.concat(feats).sort_values('doc_id').reset_index(drop=True)
+        feats = pd.concat([x for x in feats if x!=None]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
         df = self.master_idx_10k[['doc_id','cik','entity','filing_date']].drop_duplicates()
@@ -256,46 +260,50 @@ class SignalExtraction:
 
     def gen_signal_10q(self, cik):
         log(f'{cik}: Extracting 10-Q signal...')
-        df = self.master_idx_10q.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
-        docs = {}
-        for i in range(len(df)):
-            
-            # load 10-K text from EDGAR html url
-            url = df.iloc[i]['url_10q']
-            doc_id = df.iloc[i]['doc_id']
-            
-            # url request
-            session = requests.Session()
-            retry = Retry(connect=self.config['retry_connect'], backoff_factor=self.config['retry_backoff_factor'])
-            adapter = HTTPAdapter(max_retries=retry)
-            session.mount('http://', adapter)
-            session.mount('https://', adapter)
-            headers = {'Host': 'www.sec.gov', 'Connection': 'close',
-                    'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
-                    'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
-                    }
-            txt = session.get(url, headers=headers).text
+        try:
+            df = self.master_idx_10q.loc[lambda x: x.cik==cik].sort_values('filing_date').reset_index(drop=True)
+            docs = {}
+            for i in range(len(df)):
+                
+                # load 10-K text from EDGAR html url
+                url = df.iloc[i]['url_10q']
+                doc_id = df.iloc[i]['doc_id']
+                
+                # url request
+                session = requests.Session()
+                retry = Retry(connect=self.config['retry_connect'], backoff_factor=self.config['retry_backoff_factor'])
+                adapter = HTTPAdapter(max_retries=retry)
+                session.mount('http://', adapter)
+                session.mount('https://', adapter)
+                headers = {'Host': 'www.sec.gov', 'Connection': 'close',
+                        'Accept': 'application/json, text/javascript, */*; q=0.01', 'X-Requested-With': 'XMLHttpRequest',
+                        'User-Agent': f"{self.config['edgar_user_agent']}{int(float(np.random.rand(1)) * 1e7)}"
+                        }
+                txt = session.get(url, headers=headers).text
 
-            # clean doc, extract items
-            txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
-            txt = clean_doc1(txt)
-            doc_dict = {}
-            doc_dict['full'] = txt
-            for x in doc_dict:
-                doc_dict[x] = clean_doc2(doc_dict[x])
-            docs[doc_id] = doc_dict
-            
-        # generate year-on-year pairs of 10-Q
-        doc_pairs = self.get_10q_doc_pairs(docs)
-            
-        # generate signal
-        feat_vecs = [doc_pairs.doc_id]
-        feat_vecs += [gen_feat_ch_full_len_10q(docs, doc_pairs),
-                        gen_feat_full_cos_1gram_10q(docs, doc_pairs),
-                        gen_feat_full_jac_1gram_10q(docs, doc_pairs),
-                        gen_feat_word2vec_10q(docs, doc_pairs, self.global_tfidf_1g, self.tfidf_1g_wv_idx, self.wv_subset),
-                        gen_feat_lm_postive_10q(docs, doc_pairs, self.positive_word_list, self.negative_word_list)]
-        feats = pd.concat(feat_vecs, axis=1)
+                # clean doc, extract items
+                txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
+                txt = clean_doc1(txt)
+                doc_dict = {}
+                doc_dict['full'] = txt
+                for x in doc_dict:
+                    doc_dict[x] = clean_doc2(doc_dict[x])
+                docs[doc_id] = doc_dict
+                
+            # generate year-on-year pairs of 10-Q
+            doc_pairs = self.get_10q_doc_pairs(docs)
+                
+            # generate signal
+            feat_vecs = [doc_pairs.doc_id]
+            feat_vecs += [gen_feat_ch_full_len_10q(docs, doc_pairs),
+                            gen_feat_full_cos_1gram_10q(docs, doc_pairs),
+                            gen_feat_full_jac_1gram_10q(docs, doc_pairs),
+                            gen_feat_word2vec_10q(docs, doc_pairs, self.global_tfidf_1g, self.tfidf_1g_wv_idx, self.wv_subset),
+                            gen_feat_lm_postive_10q(docs, doc_pairs, self.positive_word_list, self.negative_word_list)]
+            feats = pd.concat(feat_vecs, axis=1)
+        except:
+            feats = None
+            log(f'{cik}: Error when extracting 10-Q signal')
         return feats
 
 
@@ -304,7 +312,7 @@ class SignalExtraction:
         pool = multiprocessing.Pool(processes=self.config['n_jobs'])
         feats = pool.map(self.gen_signal_10q, self.master_idx_10q.cik.unique().tolist())
         # feats = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
-        feats = pd.concat(feats).sort_values('doc_id').reset_index(drop=True)
+        feats = pd.concat([x for x in feats if x!=None]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
         df = self.master_idx_10q[['doc_id','cik','entity','filing_date']].drop_duplicates()
