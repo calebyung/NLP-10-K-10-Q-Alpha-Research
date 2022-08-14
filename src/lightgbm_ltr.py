@@ -30,7 +30,7 @@ class LTRModel:
 
     # load excess return
     def load_exret(self):
-        exret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'exret.csv'))
+        exret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'exret.pkl'))
         exret = (1+exret).rolling(self.n_day_trade).apply(np.prod, raw=True).shift(-self.n_day_trade) - 1
         exret = exret \
             .unstack() \
