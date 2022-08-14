@@ -29,3 +29,10 @@ This is an Alpha Research project based on the paper Lazy Prices by Cohen, Mallo
 ### 6. Portfolio Optimization
 * Markowitz Portfolio Optimization was done by building a simple covariance model, followed by a convex optimization in CVXPY to produce the final weights.
 * Sector Neutrality was set as an option. If true, an extra constrain would be added to CVXPY to force sector total weight to be zero.
+
+
+# Running your own backtesting
+1. Clone this repository
+2. pip install -r requirements.txt
+3. Setup backtesting parameters in config.yml
+4. Run all modules in a jupyter notebook. You can follow examples given in example_run_all.ipynb
