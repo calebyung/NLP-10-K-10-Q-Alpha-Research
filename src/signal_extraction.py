@@ -342,7 +342,7 @@ class SignalExtraction:
         feats_8k = pd.concat(feats_8k).reset_index(drop=True)
 
         # calculate Year-on-Year change
-        ret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'ret.csv'))
+        ret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'ret.pkl'))
         feats_8k = feats_8k \
             .merge(self.cik_map, how='inner', on='cik') \
             .rename(columns={'filing_date':'date'}) \
