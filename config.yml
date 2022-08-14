@@ -1,36 +1,34 @@
+# general/system params
+seed: 0
 n_jobs: 8
-
+gpu_enabled: False
 plt_color: 'white'
+horizons: {'1d':1, '3d':3, '1w':5, '2w':10, '1m':21, '3m':63, '6m':126, '9m':189, '12m':252}
 
+# stock universe and returns data parmas
 quandl_key: '2MxCLy_zrKRvSsxCWs_v'
 av_key: '3AWPS6G8YY4BIRPH'
-
 n_stock_return: 10
-
 ratio_thsld: 2
 clip_thsld: 0.2
-
 stock_volatility_min: 0.01
 stock_volatility_max: 3
-
-horizons: {'1d':1, '3d':3, '1w':5, '2w':10, '1m':21, '3m':63, '6m':126, '9m':189, '12m':252}
 beta_window: 252
 
+# edgar connection params
 filing_start_date: '2008-01-01'
 filing_end_date: '2018-03-31'
-
 edgar_index_start_year: 2006
 edgar_index_end_year: 2018
 edgar_user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36'
-
-gpu_enabled: False
-n_sample_per_cik: 1
-
 retry_connect: 3
 retry_backoff_factor: 0.5
 
+# signal extraction params
+n_sample_per_cik: 1
 max_df: 0.7
 
+# params for pre-computed signal extraction outputs
 load_prep_data: True
 global_tfidf_1g: 'global_tfidf_1g.pkl'
 global_tfidf_2g: 'global_tfidf_2g.pkl'
@@ -38,11 +36,12 @@ tfidf_1g_wv_idx: 'tfidf_1g_wv_idx.pkl'
 wv_subset: 'wv_subset.pkl'
 sampled_docs: 'sampled_docs.pkl'
 
+# backtesting params
 bt_start_date: '2014-01-01'
 bt_end_date: '2018-03-27'
-seed: 0
 bt_horizons: {'6m':126, '9m':189, '12m':252}
 
+# ML modelling params
 ltr_h: '12m'
 n_day_sample: 4
 hp_opt_hrs: 0.02
@@ -52,6 +51,9 @@ n_day_final_predict: 10000
 run_hp_tune: True
 best_params: {'sample_weight_p': 1.3887048885948596, 'max_depth': 10, 'num_leaves': 54, 'learning_rate': 0.1537015325324695, 'objective': 'lambdarank', 'min_child_weight': 3.3478798601563096, 'min_child_samples': 16, 'subsample': 0.5725379109999287, 'subsample_freq': 8, 'reg_alpha': 0.5445575343281451, 'reg_lambda': 0.21693106623962125}
 
+# portfolio optimization params
+cov_gamma: 0.5
+cov_window: 252
 
 
 

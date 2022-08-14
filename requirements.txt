@@ -25,3 +25,4 @@ tensorflow_hub
 tensorflow_text
 top2vec
 cvxpy
+ortools==9.3.10459
