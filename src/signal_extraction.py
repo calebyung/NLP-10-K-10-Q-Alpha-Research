@@ -178,6 +178,7 @@ class SignalExtraction:
             txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
             txt = clean_doc1(txt)
             item_pos = find_item_pos(txt)
+            display(item_pos)
             doc_dict = {}
             doc_dict['full'] = txt[item_pos.iloc[0]['item_1_pos_start'] :]
             item_ptrn1 = get_item_ptrn1()
