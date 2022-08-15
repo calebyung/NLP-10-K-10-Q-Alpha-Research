@@ -224,18 +224,18 @@ class SignalExtraction:
 
         # map back to stock
         df = self.master_idx_10k[['doc_id','cik','entity','filing_date']].drop_duplicates()
-        feats = feats.merge(df, how='inner', on='doc_id')
-        feats = feats.merge(self.cik_map, how='inner', on='cik')
-        cols = [c for c in feats if c[:5]=='feat_']
-        feats = feats[[c for c in feats if c not in cols] + cols]
+        self.feats = self.feats.merge(df, how='inner', on='doc_id')
+        self.feats = self.feats.merge(self.cik_map, how='inner', on='cik')
+        cols = [c for c in self.feats if c[:5]=='feat_']
+        self.feats = self.feats[[c for c in self.feats if c not in cols] + cols]
         log(f'Number of stocks with more than 1 row containing null 10-K signals:')
-        display(feats.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
-        log(f'Sample of 10-K feats:')
-        display(feats.head())
+        display(self.feats.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
+        log(f'Sample of 10-K self.feats:')
+        display(self.feats.head())
 
         # export
-        self.feats_10k = feats
-        save_pkl(feats, os.path.join(const.INTERIM_DATA_PATH, 'feats_10k.pkl'))
+        self.feats_10k = self.feats
+        save_pkl(self.feats, os.path.join(const.INTERIM_DATA_PATH, 'self.feats_10k.pkl'))
 
 
     def get_10q_doc_pairs(self, docs):
@@ -317,18 +317,18 @@ class SignalExtraction:
 
         # map back to stock
         df = self.master_idx_10q[['doc_id','cik','entity','filing_date']].drop_duplicates()
-        feats = feats.merge(df, how='inner', on='doc_id')
-        feats = feats.merge(self.cik_map, how='inner', on='cik')
-        cols = [c for c in feats if c[:5]=='feat_']
-        feats = feats[[c for c in feats if c not in cols] + cols]
+        self.feat = self.feat.merge(df, how='inner', on='doc_id')
+        self.feat = self.feat.merge(self.cik_map, how='inner', on='cik')
+        cols = [c for c in self.feat if c[:5]=='feat_']
+        self.feat = self.feat[[c for c in self.feat if c not in cols] + cols]
         log(f'Number of stocks with more than 1 row containing null 10-Q signals:')
-        display(feats.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
-        log(f'Sample of 10-Q feats:')
-        display(feats.head())
+        display(self.feat.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
+        log(f'Sample of 10-Q self.feat:')
+        display(self.feat.head())
 
         # export
-        self.feats_10q = feats
-        save_pkl(feats, os.path.join(const.INTERIM_DATA_PATH, 'feats_10q.pkl'))
+        self.feat_10q = self.feat
+        save_pkl(self.feat, os.path.join(const.INTERIM_DATA_PATH, 'self.feat_10q.pkl'))
 
 
     def gen_8k_feats(self):
