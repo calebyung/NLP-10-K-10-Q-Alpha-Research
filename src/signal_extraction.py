@@ -235,7 +235,7 @@ class SignalExtraction:
 
         # export
         self.feats_10k = self.feats
-        save_pkl(self.feats, os.path.join(const.INTERIM_DATA_PATH, 'self.feats_10k.pkl'))
+        save_pkl(self.feats, os.path.join(const.INTERIM_DATA_PATH, 'feats_10k.pkl'))
 
 
     def get_10q_doc_pairs(self, docs):
@@ -328,7 +328,7 @@ class SignalExtraction:
 
         # export
         self.feats_10q = self.feats
-        save_pkl(self.feats, os.path.join(const.INTERIM_DATA_PATH, 'self.feats_10q.pkl'))
+        save_pkl(self.feats, os.path.join(const.INTERIM_DATA_PATH, 'feats_10q.pkl'))
 
 
     def gen_8k_feats(self):
