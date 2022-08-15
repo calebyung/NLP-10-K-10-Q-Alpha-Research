@@ -312,8 +312,8 @@ class SignalExtraction:
         # generate signal per CIK
         # pool = multiprocessing.Pool(processes=self.config['n_jobs'])
         # feats = pool.map(self.gen_signal_10q, self.master_idx_10q.cik.unique().tolist())
-        self.featss = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
-        self.featss = pd.concat([x for x in self.featss if str(type(x))=="<class 'pandas.core.frame.DataFrame'>"]).sort_values('doc_id').reset_index(drop=True)
+        self.feats = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
+        self.feats = pd.concat([x for x in self.feats if str(type(x))=="<class 'pandas.core.frame.DataFrame'>"]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
         df = self.master_idx_10q[['doc_id','cik','entity','filing_date']].drop_duplicates()
