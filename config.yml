@@ -29,7 +29,7 @@ n_sample_per_cik: 1
 max_df: 0.7
 
 # params for pre-computed signal extraction outputs
-load_prep_data: True
+load_prep_data_signal_extraction: True
 global_tfidf_1g: 'global_tfidf_1g.pkl'
 global_tfidf_2g: 'global_tfidf_2g.pkl'
 tfidf_1g_wv_idx: 'tfidf_1g_wv_idx.pkl'
@@ -42,6 +42,7 @@ bt_end_date: '2018-03-27'
 bt_horizons: {'6m':126, '9m':189, '12m':252}
 
 # ML modelling params
+load_prep_data_ml: True
 ltr_h: '12m'
 n_day_sample: 4
 hp_opt_hrs: 0.02

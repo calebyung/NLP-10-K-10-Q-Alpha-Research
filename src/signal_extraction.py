@@ -137,7 +137,7 @@ class SignalExtraction:
         log(f'Running preparation...')
         self.load_deep_learning_models()
         self.load_master_dict()
-        if self.config['load_prep_data'] == False:
+        if self.config['load_prep_data_signal_extraction'] == False:
             self.build_tfidf_models()
             self.load_word2vec()
         else:
@@ -178,7 +178,6 @@ class SignalExtraction:
             txt = BeautifulSoup(txt, 'lxml').get_text('|', strip=True)
             txt = clean_doc1(txt)
             item_pos = find_item_pos(txt)
-            display(item_pos)
             doc_dict = {}
             doc_dict['full'] = txt[item_pos.iloc[0]['item_1_pos_start'] :]
             item_ptrn1 = get_item_ptrn1()
@@ -217,9 +216,9 @@ class SignalExtraction:
 
     def gen_signal_10k_all_stocks(self):
         # generate signal per CIK
-        # pool = multiprocessing.Pool(processes=self.config['n_jobs'])
-        # feats = pool.map(self.gen_signal_10k, self.master_idx_10k.cik.unique().tolist())
-        self.feats = [self.gen_signal_10k(x) for x in self.master_idx_10k.cik.unique().tolist()]
+        pool = multiprocessing.Pool(processes=self.config['n_jobs'])
+        self.feats = pool.map(self.gen_signal_10k, self.master_idx_10k.cik.unique().tolist())
+        # self.feats = [self.gen_signal_10k(x) for x in self.master_idx_10k.cik.unique().tolist()]
         self.feats = pd.concat([x for x in self.feats if str(type(x))=="<class 'pandas.core.frame.DataFrame'>"]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
@@ -310,9 +309,9 @@ class SignalExtraction:
 
     def gen_signal_10q_all_stocks(self):
         # generate signal per CIK
-        # pool = multiprocessing.Pool(processes=self.config['n_jobs'])
-        # feats = pool.map(self.gen_signal_10q, self.master_idx_10q.cik.unique().tolist())
-        self.feats = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
+        pool = multiprocessing.Pool(processes=self.config['n_jobs'])
+        self.feats = pool.map(self.gen_signal_10q, self.master_idx_10q.cik.unique().tolist())
+        # self.feats = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
         self.feats = pd.concat([x for x in self.feats if str(type(x))=="<class 'pandas.core.frame.DataFrame'>"]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock

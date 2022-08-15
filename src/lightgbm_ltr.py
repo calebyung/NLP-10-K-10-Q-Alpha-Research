@@ -30,6 +30,8 @@ class LTRModel:
 
     # load excess return
     def load_exret(self):
+        # if self.config['load_prep_data_ml'] == True:
+        # exret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'exret.pkl'))
         exret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'exret.pkl'))
         exret = (1+exret).rolling(self.n_day_trade).apply(np.prod, raw=True).shift(-self.n_day_trade) - 1
         exret = exret \
@@ -199,7 +201,7 @@ class LTRModel:
             n_jobs = -1,
             random_state = 0,
             label_gain = [i for i in range(int(self.data['rank'].max()) + 1)],
-            device_type = self.config['device_type']
+            device_type = self.device_type
         )
         
         # pack all params
