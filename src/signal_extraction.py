@@ -312,23 +312,23 @@ class SignalExtraction:
         # generate signal per CIK
         # pool = multiprocessing.Pool(processes=self.config['n_jobs'])
         # feats = pool.map(self.gen_signal_10q, self.master_idx_10q.cik.unique().tolist())
-        self.feats = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
-        self.feats = pd.concat([x for x in self.feats if str(type(x))=="<class 'pandas.core.frame.DataFrame'>"]).sort_values('doc_id').reset_index(drop=True)
+        self.featss = [self.gen_signal_10q(x) for x in self.master_idx_10q.cik.unique().tolist()]
+        self.featss = pd.concat([x for x in self.featss if str(type(x))=="<class 'pandas.core.frame.DataFrame'>"]).sort_values('doc_id').reset_index(drop=True)
 
         # map back to stock
         df = self.master_idx_10q[['doc_id','cik','entity','filing_date']].drop_duplicates()
-        self.feat = self.feat.merge(df, how='inner', on='doc_id')
-        self.feat = self.feat.merge(self.cik_map, how='inner', on='cik')
-        cols = [c for c in self.feat if c[:5]=='feat_']
-        self.feat = self.feat[[c for c in self.feat if c not in cols] + cols]
+        self.feats = self.feats.merge(df, how='inner', on='doc_id')
+        self.feats = self.feats.merge(self.cik_map, how='inner', on='cik')
+        cols = [c for c in self.feats if c[:5]=='feat_']
+        self.feats = self.feats[[c for c in self.feats if c not in cols] + cols]
         log(f'Number of stocks with more than 1 row containing null 10-Q signals:')
-        display(self.feat.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
-        log(f'Sample of 10-Q self.feat:')
-        display(self.feat.head())
+        display(self.feats.loc[lambda x: x.isnull().sum(axis=1) > 0].groupby('cik')['doc_id'].count().loc[lambda x: x>1])
+        log(f'Sample of 10-Q self.feats:')
+        display(self.feats.head())
 
         # export
-        self.feat_10q = self.feat
-        save_pkl(self.feat, os.path.join(const.INTERIM_DATA_PATH, 'self.feat_10q.pkl'))
+        self.feats_10q = self.feats
+        save_pkl(self.feats, os.path.join(const.INTERIM_DATA_PATH, 'self.feats_10q.pkl'))
 
 
     def gen_8k_feats(self):
