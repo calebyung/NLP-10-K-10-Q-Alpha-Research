@@ -309,13 +309,13 @@ def find_item_pos(doc, log_mode=False):
     # for each item, select the match with longest length
     item_pos = item_pos.sort_values(['item','len','pos_start'], ascending=[1,0,0]).drop_duplicates(subset=['item']).sort_values('pos_start')
     item_pos = pd.concat([item_pos[item_pos.item==item][['pos_start','pos_end']].reset_index(drop=True).rename(columns={'pos_start':f'{item}_pos_start','pos_end':f'{item}_pos_end'}) for item in item_ptrn1], axis=1)
-    # fillna with zero
-    item_pos = item_pos.fillna(0).astype(int)
     # if item_pos is empty due to no item found, put all zeros as a row
     if item_pos.shape[0] == 0:
         item_pos.loc[0,:] = [0] * 2 * len(item_ptrn1)
     # record the full document length
     item_pos['full_doc_len'] = len(doc)
+    # fillna with zero
+    item_pos = item_pos.fillna(0).astype(int)
     # check if non empty df is returned
     assert item_pos.shape[0]==1
     return item_pos
