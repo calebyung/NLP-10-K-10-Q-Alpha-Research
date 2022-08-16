@@ -75,7 +75,7 @@ class SignalAnalytics:
             .merge(feats_lgbm_ltr, how='outer', on=['stock','date']) \
             .sort_values(['stock','date']) \
             .groupby('stock') \
-            .apply(lambda x: x.ffill().filna(0)) \
+            .apply(lambda x: x.ffill().fillna(0)) \
             .loc[lambda x: (x.date>=self.config['bt_start_date']) & (x.date<=self.config['bt_end_date'])] \
             .reset_index(drop=True)
 
