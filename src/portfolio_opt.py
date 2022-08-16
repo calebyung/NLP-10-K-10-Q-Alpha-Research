@@ -32,7 +32,7 @@ class PortfolioOpt:
         log(f'Loaded betas: {len(list(self.betas))}')
 
         # load combined signals
-        feats = load_pkl(os.path.join(const.OUTPUT_DATA_PATH, 'feats.pkl'))
+        self.feats = load_pkl(os.path.join(const.OUTPUT_DATA_PATH, 'feats.pkl'))
         log(f'Loaded feats: {self.feats.shape}')
 
         # get stock to cluster mapping
@@ -46,7 +46,7 @@ class PortfolioOpt:
         doc_topics['topic_words'] = doc_topics['topic'].map(dict(self.topic_desc.to_records(index=False)))
         doc_topics = doc_topics.loc[lambda x: x.stock.notnull()]
         doc_topics['topic'] = doc_topics['topic'].astype(int)
-        clust_map = feats \
+        clust_map = self.feats \
             .merge(doc_topics, how='inner', on='stock') \
             .loc[:,['stock','topic']] \
             .drop_duplicates() \
