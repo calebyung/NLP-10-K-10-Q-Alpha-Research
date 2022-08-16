@@ -98,16 +98,14 @@ class SignalAnalytics:
         signal = signal.reindex(index=dates).ffill()
         signal = df_drop_na(signal)
         signal, ret_, exret_ = align_index((signal, ret, exret))
-
-        log(f'Shape of ret: {ret_.shape}')
-        log(f'Shape of exret: {exret_.shape}')
-        log(f'Shape of signal: {signal.shape}')
+        assert ret_.shape == exret_.shape == signal.shape
 
         # calculate metrics per investiment horizon
         metric = []
         for h in self.config['bt_horizons']:
             metric.append([selected_feat, h, self.config['bt_horizons'][h]] + list(gen_metric(signal, ret, exret, self.config['bt_horizons'][h])))
         metric = pd.DataFrame(metric, columns=['feat', 'horizon', 'n_day', 'avg_rnk_corr', 'sharpe_exret', 'sharpe_ret', 'sharpe_ret_vol'])
+        log(f'Analyzed signal {selected_feat}; Size of signal is {signal.shape}')
         return metric
 
 

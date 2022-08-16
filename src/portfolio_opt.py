@@ -29,7 +29,7 @@ class PortfolioOpt:
         log(f'Loaded ret: {self.ret.shape}')
         log(f'Loaded exret: {self.exret.shape}')
         log(f'Loaded spy: {self.spy.shape}')
-        log(f'Loaded betas: {self.betas.shape}')
+        log(f'Loaded betas: {len(list(self.betas))}')
 
         # load combined signals
         feats = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'feats.pkl'))
