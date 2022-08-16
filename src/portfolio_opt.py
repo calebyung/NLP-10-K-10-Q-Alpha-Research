@@ -32,7 +32,7 @@ class PortfolioOpt:
         log(f'Loaded betas: {len(list(self.betas))}')
 
         # load combined signals
-        feats = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'feats.pkl'))
+        feats = load_pkl(os.path.join(const.OUTPUT_DATA_PATH, 'feats.pkl'))
         log(f'Loaded feats: {self.feats.shape}')
 
         # get stock to cluster mapping
