@@ -38,7 +38,7 @@ class PortfolioOpt:
         # get stock to cluster mapping
         doc_topics = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'doc_topics.pkl'))
         cik_map = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'cik_map.pkl'))
-        log(f'Loaded doc_topics: {self.doc_topics.shape}')
+        log(f'Loaded doc_topics: {doc_topics.shape}')
         log(f'Loaded cik_map: {self.cik_map.shape}')
         doc_topics = doc_topics.merge(cik_map, how='outer', on='cik')
         self.topic_desc = doc_topics[['topic','topic_words']].loc[lambda x: x.topic.notnull()].drop_duplicates().sort_values('topic')
