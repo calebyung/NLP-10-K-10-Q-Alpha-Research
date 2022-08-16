@@ -24,8 +24,8 @@ class SignalAnalytics:
     def load_returns(self):
         log(f'Loading returns...')
         # import data
-        ret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'ret.csv'))
-        exret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'exret.csv'))
+        ret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'ret.pkl'))
+        exret = load_pkl(os.path.join(const.INTERIM_DATA_PATH, 'exret.pkl'))
 
         # filter returns to testing period
         exret = exret.loc[lambda x: (x.index>=self.config['bt_start_date']) & (x.index<=self.config['bt_end_date'])]
