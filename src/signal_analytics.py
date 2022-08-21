@@ -117,7 +117,7 @@ class SignalAnalytics:
     # based on first round analysis, compute various weighted averages of signals
     def add_weighted_avg_signals(self):
         log(f'Calculating weighted avg signals...')
-        s_list = [0, 0.4]
+        s_list = [0]
         k_list = [0.05, 0.10, 0.15, 0.20, -0.05, -0.10, -0.15, -0.20, 0]
         t_dict = {'minmax': MinMaxScaler(),
                 'uniform': QuantileTransformer(output_distribution='uniform', random_state=0),

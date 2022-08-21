@@ -110,7 +110,7 @@ class PortfolioOpt:
         
         # prepare input values
         if cov_model=='cov_mkt_risk':
-            sigma = get_cov_mkt_risk(date, self.params['cov_gamma'], cov_params)
+            sigma = get_cov_mkt_risk(date, self.config['cov_gamma'], cov_params)
         elif cov_model=='cov_simple':
             sigma = get_cov_simple(date, cov_params)        
         mu = weights_raw.loc[date].loc[lambda x: x.notnull()]
@@ -144,7 +144,7 @@ class PortfolioOpt:
 
 
     def get_all_opt_gammas(self, weights_raw, sector_neutral, cov_params, cov_model, plot=False):
-        opt_gammas = Parallel(n_jobs=-1)(delayed(self.get_opt_gamma)(date, weights_raw, sector_neutral, cov_params, cov_model) for date in weights_raw.index[::21])
+        opt_gammas = Parallel(n_jobs=-1)(delayed(get_opt_gamma)(date, weights_raw, sector_neutral, cov_params, cov_model, self.config['cov_gamma'], self.clust_map) for date in weights_raw.index[::21])
         opt_gammas = [(x[0], x[1]) for x in opt_gammas]
         opt_gammas = pd.DataFrame(opt_gammas).set_axis(['date','opt_gamma'], axis=1).set_index('date').opt_gamma
         opt_gammas = weights_raw.merge(opt_gammas, how='left', left_index=True, right_index=True).opt_gamma.ffill()
@@ -158,41 +158,8 @@ class PortfolioOpt:
 
 
 
-    def get_opt_weight(self, date, weights_raw, opt_gamma, sector_neutral, cov_params, cov_model):
-        
-        # prepare input values
-        if cov_model=='cov_mkt_risk':
-            sigma = df_drop_na(get_cov_mkt_risk(date, self.params['cov_gamma'], cov_params))
-        elif cov_model=='cov_simple':
-            sigma = df_drop_na(get_cov_simple(date, cov_params))
-        mu = weights_raw.loc[date].loc[lambda x: x.notnull()]
-        stock_list = sorted((mu.index.intersection(sigma.index)).tolist())
-        sigma = sigma.reindex(index=stock_list, columns=stock_list)
-        mu = mu.reindex(index=stock_list).values.reshape(1,-1)
-        n_stock_opt = len(stock_list)
-
-        # solve by optimizer
-        w = cp.Variable(n_stock_opt)
-        gamma = cp.Parameter(nonneg=True)
-        ret_ = mu @ w 
-        risk = cp.quad_form(w, sigma)
-        basic_constraints = [cp.sum(w) == 0, cp.abs(w) <= 0.03, cp.norm(w, 1) <= 5]
-        clust_constraints = [pd.Series(stock_list).map(self.clust_map[i]).values.reshape(1,-1) @ w == 0 for i in self.clust_map]
-        constraints = basic_constraints + clust_constraints if sector_neutral==True else basic_constraints
-        prob = cp.Problem(cp.Maximize(ret_ - gamma*risk), constraints)
-        gamma.value = opt_gamma
-        prob.solve()
-        
-        # output optimized weight
-        w_opt = dict(zip(stock_list, w.value))
-        w_opt = weights_raw.columns.map(w_opt)
-        w_opt = pd.Series(w_opt, index=weights_raw.columns).rename(date)
-        return w_opt
-
-
-
     def get_all_opt_weights(self, weights_raw, opt_gammas, sector_neutral, cov_params, cov_model, plot=False):
-        weights_opt = Parallel(n_jobs=-1)(delayed(self.get_opt_weight)(date, weights_raw, opt_gammas.loc[date], sector_neutral, cov_params, cov_model) for date in weights_raw.index)
+        weights_opt = Parallel(n_jobs=-1)(delayed(get_opt_weight)(date, weights_raw, opt_gammas.loc[date], sector_neutral, cov_params, cov_model, self.config['cov_gamma'], self.clust_map) for date in weights_raw.index)
         weights_opt = pd.concat(weights_opt, axis=1).T.sort_index()
 
         if plot:
@@ -279,6 +246,76 @@ class PortfolioOpt:
         return weights_raw, port_ret_raw, weights_opt, port_ret_opt
 
 
+
+
+def get_opt_gamma(date, weights_raw, sector_neutral, cov_params, cov_model, cov_gamma, clust_map):
+    # prepare input values
+    if cov_model=='cov_mkt_risk':
+        sigma = get_cov_mkt_risk(date, cov_gamma, cov_params)
+    elif cov_model=='cov_simple':
+        sigma = get_cov_simple(date, cov_params)        
+    mu = weights_raw.loc[date].loc[lambda x: x.notnull()]
+    stock_list = sorted((mu.index.intersection(sigma.index)).tolist())
+    sigma = sigma.reindex(index=stock_list, columns=stock_list)
+    mu = mu.reindex(index=stock_list).values.reshape(1,-1)
+    n_stock_opt = len(stock_list)
+
+    # setup optimizer
+    w = cp.Variable(n_stock_opt)
+    gamma = cp.Parameter(nonneg=True)
+    ret_ = mu @ w 
+    risk = cp.quad_form(w, sigma)
+    basic_constraints = [cp.sum(w) == 0, cp.abs(w) <= 0.03, cp.norm(w, 1) <= 5]
+    clust_constraints = [pd.Series(stock_list).map(clust_map[i]).values.reshape(1,-1) @ w == 0 for i in clust_map]
+    constraints = basic_constraints + clust_constraints if sector_neutral==True else basic_constraints
+    prob = cp.Problem(cp.Maximize(ret_ - gamma*risk), constraints)
+    
+    # grid search gamma
+    n_sample = 20
+    slope_data = np.zeros(n_sample)
+    gamma_vals = np.logspace(3,7,n_sample)
+    for i in range(n_sample):
+        gamma.value = gamma_vals[i]
+        prob.solve()
+        slope_data[i] = ret_.value[0] / float(cp.sqrt(risk).value)
+    slope_data = np.round(slope_data, 4)
+    opt_gamma = gamma_vals[np.argmax(slope_data)]
+    return date, opt_gamma, gamma_vals, slope_data
+
+
+def get_opt_weight(date, weights_raw, opt_gamma, sector_neutral, cov_params, cov_model, cov_gamma, clust_map):
+    
+    # prepare input values
+    if cov_model=='cov_mkt_risk':
+        sigma = df_drop_na(get_cov_mkt_risk(date, cov_gamma, cov_params))
+    elif cov_model=='cov_simple':
+        sigma = df_drop_na(get_cov_simple(date, cov_params))
+    mu = weights_raw.loc[date].loc[lambda x: x.notnull()]
+    stock_list = sorted((mu.index.intersection(sigma.index)).tolist())
+    sigma = sigma.reindex(index=stock_list, columns=stock_list)
+    mu = mu.reindex(index=stock_list).values.reshape(1,-1)
+    n_stock_opt = len(stock_list)
+
+    # solve by optimizer
+    w = cp.Variable(n_stock_opt)
+    gamma = cp.Parameter(nonneg=True)
+    ret_ = mu @ w 
+    risk = cp.quad_form(w, sigma)
+    basic_constraints = [cp.sum(w) == 0, cp.abs(w) <= 0.03, cp.norm(w, 1) <= 5]
+    clust_constraints = [pd.Series(stock_list).map(clust_map[i]).values.reshape(1,-1) @ w == 0 for i in clust_map]
+    constraints = basic_constraints + clust_constraints if sector_neutral==True else basic_constraints
+    prob = cp.Problem(cp.Maximize(ret_ - gamma*risk), constraints)
+    gamma.value = opt_gamma
+    prob.solve()
+    
+    # output optimized weight
+    w_opt = dict(zip(stock_list, w.value))
+    w_opt = weights_raw.columns.map(w_opt)
+    w_opt = pd.Series(w_opt, index=weights_raw.columns).rename(date)
+    return w_opt
+
+    
+    
 
 '''
 Risk models
