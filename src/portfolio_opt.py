@@ -10,6 +10,9 @@ from IPython.display import display
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 import cvxpy as cp
+from functools import partial
+from itertools import repeat
+from multiprocessing import Pool, freeze_support
 
 
 class PortfolioOpt:
@@ -146,7 +149,9 @@ class PortfolioOpt:
     def get_all_opt_gammas(self, weights_raw, sector_neutral, cov_params, cov_model, plot=False):
         cov_gamma = self.config['cov_gamma']
         clust_map = self.clust_map
-        opt_gammas = Parallel(n_jobs=-1)(delayed(get_opt_gamma)(date, weights_raw, sector_neutral, cov_params, cov_model, cov_gamma, clust_map) for date in weights_raw.index[::21])
+        # opt_gammas = Parallel(n_jobs=-1)(delayed(get_opt_gamma)(date, weights_raw, sector_neutral, cov_params, cov_model, cov_gamma, clust_map) for date in weights_raw.index[::21])
+        pool = multiprocessing.Pool(processes=self.config['n_jobs'])
+        opt_gammas = pool.map(partial(get_opt_gamma, weights_raw=weights_raw, sector_neutral=sector_neutral, cov_params=cov_params, cov_model=cov_model, cov_gamma=cov_gamma, clust_map=clust_map), weights_raw.index[::21])
         opt_gammas = [(x[0], x[1]) for x in opt_gammas]
         opt_gammas = pd.DataFrame(opt_gammas).set_axis(['date','opt_gamma'], axis=1).set_index('date').opt_gamma
         opt_gammas = weights_raw.merge(opt_gammas, how='left', left_index=True, right_index=True).opt_gamma.ffill()
