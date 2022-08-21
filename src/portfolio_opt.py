@@ -150,7 +150,7 @@ class PortfolioOpt:
         cov_gamma = self.config['cov_gamma']
         clust_map = self.clust_map
         # opt_gammas = Parallel(n_jobs=-1)(delayed(get_opt_gamma)(date, weights_raw, sector_neutral, cov_params, cov_model, cov_gamma, clust_map) for date in weights_raw.index[::21])
-        pool = multiprocessing.Pool(processes=self.config['n_jobs'])
+        pool = Pool(processes=self.config['n_jobs'])
         opt_gammas = pool.map(partial(get_opt_gamma, weights_raw=weights_raw, sector_neutral=sector_neutral, cov_params=cov_params, cov_model=cov_model, cov_gamma=cov_gamma, clust_map=clust_map), weights_raw.index[::21])
         opt_gammas = [(x[0], x[1]) for x in opt_gammas]
         opt_gammas = pd.DataFrame(opt_gammas).set_axis(['date','opt_gamma'], axis=1).set_index('date').opt_gamma
