@@ -144,7 +144,9 @@ class PortfolioOpt:
 
 
     def get_all_opt_gammas(self, weights_raw, sector_neutral, cov_params, cov_model, plot=False):
-        opt_gammas = Parallel(n_jobs=-1)(delayed(get_opt_gamma)(date, weights_raw, sector_neutral, cov_params, cov_model, self.config['cov_gamma'], self.clust_map) for date in weights_raw.index[::21])
+        cov_gamma = self.config['cov_gamma']
+        clust_map = self.clust_map
+        opt_gammas = Parallel(n_jobs=-1)(delayed(get_opt_gamma)(date, weights_raw, sector_neutral, cov_params, cov_model, cov_gamma, clust_map) for date in weights_raw.index[::21])
         opt_gammas = [(x[0], x[1]) for x in opt_gammas]
         opt_gammas = pd.DataFrame(opt_gammas).set_axis(['date','opt_gamma'], axis=1).set_index('date').opt_gamma
         opt_gammas = weights_raw.merge(opt_gammas, how='left', left_index=True, right_index=True).opt_gamma.ffill()
@@ -159,7 +161,9 @@ class PortfolioOpt:
 
 
     def get_all_opt_weights(self, weights_raw, opt_gammas, sector_neutral, cov_params, cov_model, plot=False):
-        weights_opt = Parallel(n_jobs=-1)(delayed(get_opt_weight)(date, weights_raw, opt_gammas.loc[date], sector_neutral, cov_params, cov_model, self.config['cov_gamma'], self.clust_map) for date in weights_raw.index)
+        cov_gamma = self.config['cov_gamma']
+        clust_map = self.clust_map
+        weights_opt = Parallel(n_jobs=-1)(delayed(get_opt_weight)(date, weights_raw, opt_gammas.loc[date], sector_neutral, cov_params, cov_model, cov_gamma, clust_map) for date in weights_raw.index)
         weights_opt = pd.concat(weights_opt, axis=1).T.sort_index()
 
         if plot:
